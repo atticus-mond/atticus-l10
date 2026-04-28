@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Operations Support — Weekly L10</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0A0A0A;
+    --ink-soft: #1F1F1F;
+    --paper: #FAF8F3;
+    --paper-deep: #F2EFE7;
+    --rule: #2A2A2A;
+    --muted: #6B6B6B;
+    --line: #D9D5C9;
+    --accent: #F5C400;
+    --accent-deep: #C99E00;
+    --green: #2E7D5B;
+    --green-bg: #DDEBE0;
+    --amber: #B08400;
+    --amber-bg: #FBE9C0;
+    --red: #B33A3A;
+    --red-bg: #F5D6D2;
+
+    --font-display: "Fraunces", Georgia, serif;
+    --font-body: "Inter Tight", -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", "Courier New", monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+  /* ---------- Masthead ---------- */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 24px 40px 20px;
+    background: var(--paper);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .masthead-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+  .brand { font-family: var(--font-display); font-weight: 600; font-size: 28px; letter-spacing: -0.02em; line-height: 1; }
+  .brand .accent { color: var(--accent-deep); font-style: italic; font-weight: 500; }
+  .meta { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); display: flex; gap: 24px; }
+  .meta strong { color: var(--ink); font-weight: 600; }
+  .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--ink); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; }
+  .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+  .status-pill.offline .dot { background: var(--red); }
+  .status-pill.syncing .dot { background: var(--amber); animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: 0.4; } }
+
+  /* ---------- Nav ---------- */
+  nav.tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+    padding: 0 40px;
+    overflow-x: auto;
+    position: sticky;
+    top: 84px;
+    z-index: 49;
+  }
+  nav.tabs button {
+    background: none;
+    border: none;
+    padding: 14px 20px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  nav.tabs button:hover { color: var(--ink); }
+  nav.tabs button.active { color: var(--ink); border-bottom-color: var(--accent); }
+  nav.tabs button .num { font-family: var(--font-mono); font-size: 10px; color: var(--accent-deep); margin-right: 6px; }
+
+  /* ---------- Main ---------- */
+  main { max-width: 1400px; margin: 0 auto; padding: 40px; }
+  .panel { display: none; animation: fadeIn 0.25s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .section-head { margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+  .section-eyebrow { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--accent-deep); margin-bottom: 8px; }
+  .section-title { font-family: var(--font-display); font-weight: 500; font-size: 36px; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 6px; }
+  .section-sub { color: var(--muted); font-size: 13px; max-width: 720px; }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .toolbar input[type="search"], .toolbar select {
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .toolbar input[type="search"] { min-width: 240px; }
+  .toolbar input[type="search"]:focus, .toolbar select:focus { outline: none; border-color: var(--ink); }
+  .toolbar .spacer { flex: 1; }
+  .toolbar .count { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+
+  button.btn {
+    font-family: var(--font-body); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 8px 14px; cursor: pointer; transition: all 0.15s;
+    border: 1px solid var(--ink); background: var(--paper); color: var(--ink);
+  }
+  button.btn:hover { background: var(--ink); color: var(--paper); }
+  button.btn.primary { background: var(--ink); color: var(--paper); }
+  button.btn.primary:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
+  button.btn.accent { background: var(--accent); color: var(--ink); border-color: var(--accent); }
+  button.btn.accent:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
+  button.btn.ghost { border-color: var(--line); color: var(--muted); }
+  button.btn.ghost:hover { color: var(--ink); border-color: var(--ink); background: transparent; }
+  button.btn.small { font-size: 10px; padding: 5px 10px; }
+
+  /* ---------- Tables ---------- */
+  table { width: 100%; border-collapse: collapse; background: var(--paper); }
+  thead th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--ink);
+    background: var(--paper-deep);
+    font-weight: 500;
+  }
+  tbody td {
+    padding: 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  tbody tr:hover { background: var(--paper-deep); }
+  tbody td > input, tbody td > select, tbody td > textarea {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 12px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    resize: vertical;
+    line-height: 1.5;
+  }
+  tbody td > textarea { min-height: 38px; }
+  tbody td > input:focus, tbody td > select:focus, tbody td > textarea:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    background: #FFFCEF;
+  }
+  tbody td.dirty { background: #FFFCEF; }
+  tbody td.dirty::before { content: ""; display: block; position: absolute; }
+  tbody tr.dirty-row td { background: #FFFCEF; }
+
+  /* status colour pills (rendered inside selects via class) */
+  .status-cell select { font-weight: 600; font-size: 12px; }
+  select.s-on-track, select.s-done, select.s-yes, select.s-resolved { background: var(--green-bg); color: var(--green); }
+  select.s-at-risk, select.s-ongoing, select.s-carried, select.s-watch { background: var(--amber-bg); color: var(--amber); }
+  select.s-off-track, select.s-blocked, select.s-no, select.s-overdue { background: var(--red-bg); color: var(--red); }
+
+  /* priority pills */
+  .priority-cell select.p-P1 { background: var(--red-bg); color: var(--red); font-weight: 700; }
+  .priority-cell select.p-P2 { background: var(--amber-bg); color: var(--amber); font-weight: 700; }
+  .priority-cell select.p-P3 { background: var(--green-bg); color: var(--green); font-weight: 700; }
+
+  .row-actions { display: flex; gap: 6px; padding: 10px 8px; }
+  .row-actions button { background: none; border: 1px solid var(--line); padding: 4px 8px; font-size: 10px; cursor: pointer; color: var(--muted); }
+  .row-actions button:hover { color: var(--red); border-color: var(--red); }
+
+  /* ---------- Cards / Meta blocks ---------- */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .card { border: 1px solid var(--line); padding: 20px; background: var(--paper); }
+  .card h3 { font-family: var(--font-display); font-weight: 500; font-size: 18px; margin-bottom: 12px; }
+  .card label { display: block; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-top: 12px; margin-bottom: 4px; }
+  .card input, .card select, .card textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); background: var(--paper); font-family: inherit; font-size: 13px; }
+  .card input:focus, .card select:focus, .card textarea:focus { outline: 2px solid var(--accent); outline-offset: -2px; border-color: var(--ink); }
+
+  /* Agenda */
+  .agenda-list { list-style: none; counter-reset: agenda; }
+  .agenda-item { display: flex; gap: 24px; padding: 18px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+  .agenda-item:last-child { border-bottom: none; }
+  .agenda-num { font-family: var(--font-display); font-size: 32px; font-weight: 300; color: var(--accent-deep); line-height: 1; min-width: 48px; }
+  .agenda-body { flex: 1; }
+  .agenda-seg { font-family: var(--font-display); font-weight: 500; font-size: 18px; }
+  .agenda-detail { font-size: 12px; color: var(--muted); margin-top: 2px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; }
+  .agenda-time { font-family: var(--font-mono); font-size: 13px; color: var(--ink); padding: 4px 10px; border: 1px solid var(--ink); white-space: nowrap; }
+
+  /* ---------- Toast / Notifications ---------- */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 100;
+    background: var(--ink); color: var(--paper);
+    padding: 14px 20px; font-size: 13px;
+    border-left: 4px solid var(--accent);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+    transform: translateY(120%);
+    transition: transform 0.3s ease;
+    max-width: 360px;
+  }
+  .toast.show { transform: translateY(0); }
+  .toast.error { border-left-color: var(--red); }
+  .toast.success { border-left-color: var(--green); }
+
+  /* ---------- History trend ---------- */
+  .trend-table { font-size: 12px; }
+  .trend-table td { padding: 8px 10px !important; }
+  .trend-table input { width: 60px; padding: 4px 6px !important; font-family: var(--font-mono) !important; font-size: 11px !important; }
+  .trend-table th { font-size: 9px !important; padding: 6px 8px !important; }
+
+  /* ---------- Probing / VTO reference (read-only) ---------- */
+  .reading {
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 1.6;
+    max-width: 720px;
+  }
+  .reading ol { padding-left: 24px; }
+  .reading ol li { margin-bottom: 16px; }
+  .vision-block { padding: 24px 0; border-top: 1px solid var(--line); }
+  .vision-block:first-child { border-top: none; padding-top: 0; }
+  .vision-team { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent-deep); margin-bottom: 12px; }
+  .vision-text { font-family: var(--font-display); font-size: 20px; line-height: 1.5; max-width: 760px; font-weight: 400; }
+
+  /* ---------- Print ---------- */
+  @media print {
+    .masthead, nav.tabs, .toolbar, .row-actions, button.btn { display: none !important; }
+    .panel { display: block !important; page-break-after: always; }
+    main { padding: 0; }
+  }
+
+  /* ---------- Setup modal ---------- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(10,10,10,0.85);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200; backdrop-filter: blur(4px);
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--paper); padding: 36px; max-width: 560px; width: 90%;
+    border-top: 4px solid var(--accent);
+  }
+  .modal h2 { font-family: var(--font-display); font-size: 28px; margin-bottom: 8px; font-weight: 500; }
+  .modal p { color: var(--muted); margin-bottom: 20px; font-size: 13px; }
+  .modal label { display: block; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; margin-top: 14px; }
+  .modal input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); font-family: var(--font-mono); font-size: 12px; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+  /* ---------- Empty state ---------- */
+  .empty { text-align: center; padding: 48px 24px; color: var(--muted); font-style: italic; }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-row">
+    <div>
+      <div class="brand">Operations Support <span class="accent">Weekly L10</span></div>
+      <div class="meta" style="margin-top: 8px;">
+        <span>Week <strong id="week-num">—</strong></span>
+        <span>Meeting <strong id="meeting-date">—</strong></span>
+        <span>Facilitator <strong id="facilitator-name">—</strong></span>
+      </div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <span class="status-pill" id="connection-pill"><span class="dot"></span><span id="connection-text">Ready</span></span>
+      <button class="btn ghost small" onclick="openSetup()">Settings</button>
+      <button class="btn small" onclick="loadAll()">↻ Refresh</button>
+      <button class="btn primary small" onclick="saveAll()">Save changes</button>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" id="tab-nav">
+  <button class="active" data-panel="meeting"><span class="num">01</span>Meeting</button>
+  <button data-panel="agenda"><span class="num">02</span>Agenda</button>
+  <button data-panel="scorecard"><span class="num">03</span>Scorecard</button>
+  <button data-panel="rocks"><span class="num">04</span>Rocks</button>
+  <button data-panel="headlines"><span class="num">05</span>Headlines</button>
+  <button data-panel="todos"><span class="num">06</span>To-Dos</button>
+  <button data-panel="issues"><span class="num">07</span>Issues / IDS</button>
+  <button data-panel="feedback"><span class="num">08</span>Feedback</button>
+  <button data-panel="rate"><span class="num">09</span>Rate</button>
+  <button data-panel="trends"><span class="num">10</span>KPI Trends</button>
+  <button data-panel="archive"><span class="num">11</span>Archive</button>
+  <button data-panel="reference"><span class="num">12</span>Reference</button>
+</nav>
+
+<main>
+
+<!-- ============ 01 MEETING ============ -->
+<section class="panel active" id="panel-meeting">
+  <div class="section-head">
+    <div class="section-eyebrow">Section One</div>
+    <h1 class="section-title">Meeting Information</h1>
+    <p class="section-sub">Set the week, facilitator, and attendance. Everything else flows from here.</p>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>This Week</h3>
+      <label>Meeting Date</label>
+      <input type="date" id="m-date" />
+      <label>Week #</label>
+      <input type="text" id="m-week" placeholder="e.g. 17" />
+      <label>Facilitator</label>
+      <input type="text" id="m-facilitator" />
+      <label>Note Taker</label>
+      <input type="text" id="m-notetaker" />
+      <label>Process Owner of the Week</label>
+      <input type="text" id="m-process-owner" />
+    </div>
+    <div class="card">
+      <h3>Attendance</h3>
+      <table style="margin-top: 8px;">
+        <thead>
+          <tr><th style="width: 35%;">Name</th><th style="width: 35%;">Role</th><th>Status</th></tr>
+        </thead>
+        <tbody id="attendance-tbody"></tbody>
+      </table>
+      <button class="btn ghost small" style="margin-top: 12px;" onclick="addAttendee()">+ Add person</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 AGENDA ============ -->
+<section class="panel" id="panel-agenda">
+  <div class="section-head">
+    <div class="section-eyebrow">Section Two</div>
+    <h1 class="section-title">Agenda — 90 Minutes</h1>
+    <p class="section-sub">Standard L10 segments. Click a row to jump to that section.</p>
+  </div>
+
+  <ol class="agenda-list">
+    <li class="agenda-item" onclick="showPanel('meeting')">
+      <span class="agenda-num">01</span>
+      <div class="agenda-body">
+        <div class="agenda-seg">Segue</div>
+        <div class="agenda-detail">Personal best · professional best</div>
+      </div>
+      <span class="agenda-time">5 MIN</span>
+    </li>
+    <li class="agenda-item" onclick="showPanel('scorecard')">
+      <span class="agenda-num">02</span>
+      <div class="agenda-body">
+        <div class="agenda-seg">Scorecard</div>
+        <div class="agenda-detail">Process Owner walks the numbers</div>
+      </div>
+      <span class="agenda-time">5 MIN</span>
+    </li>
+    <li class="agenda-item" onclick="showPanel('rocks')">
+      <span class="agenda-num">03</span>
+      <div class="agenda-body">
+        <div class="agenda-seg">Rock Review</div>
+        <div class="agenda-detail">On track · Off track only — drill into Off Track</div>
+      </div>
+      <span class="agenda-time">5 MIN</span>
+    </li>
+    <li class="agenda-item" onclick="showPanel('headlines')">
+      <span class="agenda-num">04</span>
+      <div class="agenda-body">
+        <div class="agenda-seg">Headlines</div>
+        <div class="agenda-detail">Customer · employee · kudos</div>
+      </div>
+      <span class="agenda-time">5 MIN</span>
+    </li>
+    <li class="agenda-item" onclick="showPanel('todos')">
+      <span class="agenda-num">05</span>
+      <div class="agenda-body">
+        <div class="agenda-seg">To-Dos</div>
+        <div class="agenda-detail">90% completion target</div>
+      </div>
+      <span class="agenda-time">5 MIN</span>
+    </li>
+    <li class="agenda-item" onclick="showPanel('issues')">
+      <span class="agenda-num">06</span>
+      <div class="agenda-body">
+        <div class="agenda-seg">IDS — Identify, Discuss, Solve</div>
+        <div class="agenda-detail">Bulk of the meeting</div>
+      </div>
+      <span class="agenda-time">60 MIN</span>
+    </li>
+    <li class="agenda-item" onclick="showPanel('rate')">
+      <span class="agenda-num">07</span>
+      <div class="agenda-body">
+        <div class="agenda-seg">Conclude</div>
+        <div class="agenda-detail">Recap · cascade · rate the meeting</div>
+      </div>
+      <span class="agenda-time">5 MIN</span>
+    </li>
+  </ol>
+</section>
+
+<!-- ============ 03 SCORECARD ============ -->
+<section class="panel" id="panel-scorecard">
+  <div class="section-head">
+    <div class="section-eyebrow">Section Three</div>
+    <h1 class="section-title">Scorecard — This Week</h1>
+    <p class="section-sub">Each KPI owner updates their actual. Status auto-suggests based on actual vs goal.</p>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="scorecard-search" placeholder="Search KPI…" oninput="filterTable('scorecard')"/>
+    <select id="scorecard-dept" onchange="filterTable('scorecard')">
+      <option value="">All departments</option>
+      <option>Finance</option><option>Admin</option><option>Compliance</option><option>IT</option>
+    </select>
+    <span class="spacer"></span>
+    <span class="count" id="scorecard-count"></span>
+    <button class="btn small" onclick="addRow('scorecard')">+ KPI</button>
+  </div>
+  <table id="scorecard-table">
+    <thead>
+      <tr>
+        <th style="width: 11%;">Dept</th>
+        <th style="width: 22%;">KPI</th>
+        <th style="width: 9%;">Goal</th>
+        <th style="width: 19%;">Definition</th>
+        <th style="width: 10%;">Owner</th>
+        <th style="width: 9%;">Actual</th>
+        <th style="width: 11%;">Status</th>
+        <th style="width: 9%;">Notes</th>
+      </tr>
+    </thead>
+    <tbody id="scorecard-tbody"></tbody>
+  </table>
+</section>
+
+<!-- ============ 04 ROCKS ============ -->
+<section class="panel" id="panel-rocks">
+  <div class="section-head">
+    <div class="section-eyebrow">Section Four</div>
+    <h1 class="section-title">Quarterly Rocks</h1>
+    <p class="section-sub">One-line status per Rock owner. Drill in only on Off Track.</p>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="rocks-search" placeholder="Search Rocks…" oninput="filterTable('rocks')"/>
+    <select id="rocks-quarter" onchange="filterTable('rocks')">
+      <option value="">All quarters</option>
+      <option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option>
+    </select>
+    <span class="spacer"></span>
+    <span class="count" id="rocks-count"></span>
+    <button class="btn small" onclick="addRow('rocks')">+ Rock</button>
+  </div>
+  <table id="rocks-table">
+    <thead>
+      <tr>
+        <th style="width: 10%;">Dept</th>
+        <th style="width: 28%;">Rock</th>
+        <th style="width: 11%;">Owner</th>
+        <th style="width: 6%;">Qtr</th>
+        <th style="width: 11%;">Due</th>
+        <th style="width: 7%;">%</th>
+        <th style="width: 11%;">Status</th>
+        <th style="width: 16%;">Update</th>
+      </tr>
+    </thead>
+    <tbody id="rocks-tbody"></tbody>
+  </table>
+</section>
+
+<!-- ============ 05 HEADLINES ============ -->
+<section class="panel" id="panel-headlines">
+  <div class="section-head">
+    <div class="section-eyebrow">Section Five</div>
+    <h1 class="section-title">Headlines</h1>
+    <p class="section-sub">Short and sharp. If it needs discussion, push it to Issues instead.</p>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="headlines-search" placeholder="Search headlines…" oninput="filterTable('headlines')"/>
+    <span class="spacer"></span>
+    <span class="count" id="headlines-count"></span>
+    <button class="btn small" onclick="addRow('headlines')">+ Headline</button>
+  </div>
+  <table id="headlines-table">
+    <thead>
+      <tr>
+        <th style="width: 14%;">Type</th>
+        <th style="width: 50%;">Headline</th>
+        <th style="width: 14%;">Raised by</th>
+        <th style="width: 12%;">Date</th>
+        <th style="width: 10%;">Notes</th>
+      </tr>
+    </thead>
+    <tbody id="headlines-tbody"></tbody>
+  </table>
+</section>
+
+<!-- ============ 06 TODOS ============ -->
+<section class="panel" id="panel-todos">
+  <div class="section-head">
+    <div class="section-eyebrow">Section Six</div>
+    <h1 class="section-title">To-Dos — 7 Day Action List</h1>
+    <p class="section-sub">90 percent completion target. Overdue dates highlight automatically.</p>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="todos-search" placeholder="Search to-dos…" oninput="filterTable('todos')"/>
+    <select id="todos-dept" onchange="filterTable('todos')">
+      <option value="">All departments</option>
+      <option>Finance</option><option>Admin</option><option>Compliance</option><option>IT</option><option>All</option>
+    </select>
+    <select id="todos-status" onchange="filterTable('todos')">
+      <option value="">All statuses</option>
+      <option>Not Started</option><option>Ongoing</option><option>Done</option><option>Blocked</option>
+    </select>
+    <span class="spacer"></span>
+    <span class="count" id="todos-count"></span>
+    <button class="btn small" onclick="addRow('todos')">+ To-Do</button>
+  </div>
+  <table id="todos-table">
+    <thead>
+      <tr>
+        <th style="width: 9%;">Dept</th>
+        <th style="width: 32%;">To-Do</th>
+        <th style="width: 12%;">Owner</th>
+        <th style="width: 12%;">Help From</th>
+        <th style="width: 11%;">Due</th>
+        <th style="width: 11%;">Status</th>
+        <th style="width: 13%;">Notes</th>
+      </tr>
+    </thead>
+    <tbody id="todos-tbody"></tbody>
+  </table>
+</section>
+
+<!-- ============ 07 ISSUES ============ -->
+<section class="panel" id="panel-issues">
+  <div class="section-head">
+    <div class="section-eyebrow">Section Seven</div>
+    <h1 class="section-title">Issues — IDS</h1>
+    <p class="section-sub">Identify · Discuss · Solve. Prioritise P1/P2/P3, then take the top three.</p>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="issues-search" placeholder="Search issues…" oninput="filterTable('issues')"/>
+    <select id="issues-priority" onchange="filterTable('issues')">
+      <option value="">All priorities</option>
+      <option>P1</option><option>P2</option><option>P3</option>
+    </select>
+    <select id="issues-resolved" onchange="filterTable('issues')">
+      <option value="">All</option>
+      <option>Yes</option><option>No</option><option>Carried Over</option>
+    </select>
+    <span class="spacer"></span>
+    <span class="count" id="issues-count"></span>
+    <button class="btn small" onclick="addRow('issues')">+ Issue</button>
+  </div>
+  <table id="issues-table">
+    <thead>
+      <tr>
+        <th style="width: 6%;">Pri</th>
+        <th style="width: 9%;">Source</th>
+        <th style="width: 19%;">Issue</th>
+        <th style="width: 10%;">Raised by</th>
+        <th style="width: 8%;">Date</th>
+        <th style="width: 14%;">Context</th>
+        <th style="width: 14%;">End in Mind</th>
+        <th style="width: 10%;">Next Step / Owner</th>
+        <th style="width: 10%;">Resolved?</th>
+      </tr>
+    </thead>
+    <tbody id="issues-tbody"></tbody>
+  </table>
+</section>
+
+<!-- ============ 08 FEEDBACK ============ -->
+<section class="panel" id="panel-feedback">
+  <div class="section-head">
+    <div class="section-eyebrow">Section Eight</div>
+    <h1 class="section-title">Feedback Intake</h1>
+    <p class="section-sub">Drop feedback any time during the week. Promote items to Issues at the L10.</p>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="feedback-search" placeholder="Search feedback…" oninput="filterTable('feedback')"/>
+    <span class="spacer"></span>
+    <span class="count" id="feedback-count"></span>
+    <button class="btn small" onclick="addRow('feedback')">+ Feedback</button>
+  </div>
+  <table id="feedback-table">
+    <thead>
+      <tr>
+        <th style="width: 12%;">Source</th>
+        <th style="width: 38%;">Feedback</th>
+        <th style="width: 10%;">Issue?</th>
+        <th style="width: 12%;">Raised by</th>
+        <th style="width: 10%;">Date</th>
+        <th style="width: 18%;">Status</th>
+      </tr>
+    </thead>
+    <tbody id="feedback-tbody"></tbody>
+  </table>
+</section>
+
+<!-- ============ 09 RATE THE MEETING ============ -->
+<section class="panel" id="panel-rate">
+  <div class="section-head">
+    <div class="section-eyebrow">Section Nine</div>
+    <h1 class="section-title">Rate the Meeting</h1>
+    <p class="section-sub">1–10 from each member. Average target is 8+.</p>
+  </div>
+  <div class="toolbar">
+    <span class="count">Average this week: <strong id="rate-avg" style="color: var(--ink); font-size: 14px;">—</strong></span>
+    <span class="spacer"></span>
+    <button class="btn small" onclick="addRow('rate')">+ Person</button>
+  </div>
+  <table id="rate-table">
+    <thead>
+      <tr>
+        <th style="width: 14%;">Name</th>
+        <th style="width: 10%;">Rating</th>
+        <th style="width: 38%;">Best question this week</th>
+        <th style="width: 38%;">Commitment for next L10</th>
+      </tr>
+    </thead>
+    <tbody id="rate-tbody"></tbody>
+  </table>
+</section>
+
+<!-- ============ 10 KPI TRENDS ============ -->
+<section class="panel" id="panel-trends">
+  <div class="section-head">
+    <div class="section-eyebrow">Section Ten</div>
+    <h1 class="section-title">KPI Trend History</h1>
+    <p class="section-sub">26-week rolling history. Each Monday the previous week's actual gets archived here automatically.</p>
+  </div>
+  <div class="toolbar">
+    <button class="btn small" onclick="archiveCurrentWeek()">Archive this week's actuals</button>
+    <span class="spacer"></span>
+    <span class="count" id="trends-count"></span>
+  </div>
+  <div style="overflow-x: auto;">
+    <table id="trends-table" class="trend-table">
+      <thead id="trends-thead"></thead>
+      <tbody id="trends-tbody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 11 ARCHIVE ============ -->
+<section class="panel" id="panel-archive">
+  <div class="section-head">
+    <div class="section-eyebrow">Section Eleven</div>
+    <h1 class="section-title">Archive — Done & Resolved</h1>
+    <p class="section-sub">Closed To-Dos and resolved Issues, kept for the record.</p>
+  </div>
+
+  <h3 style="font-family: var(--font-display); font-size: 22px; margin: 24px 0 12px;">Done To-Dos</h3>
+  <table id="archive-todos-table">
+    <thead>
+      <tr>
+        <th style="width: 12%;">Closed</th>
+        <th style="width: 10%;">Dept</th>
+        <th style="width: 38%;">To-Do</th>
+        <th style="width: 14%;">Owner</th>
+        <th style="width: 16%;">Outcome</th>
+        <th style="width: 10%;">Wk</th>
+      </tr>
+    </thead>
+    <tbody id="archive-todos-tbody"></tbody>
+  </table>
+
+  <h3 style="font-family: var(--font-display); font-size: 22px; margin: 32px 0 12px;">Resolved Issues</h3>
+  <table id="archive-issues-table">
+    <thead>
+      <tr>
+        <th style="width: 12%;">Resolved</th>
+        <th style="width: 10%;">Source</th>
+        <th style="width: 32%;">Issue</th>
+        <th style="width: 14%;">Raised by</th>
+        <th style="width: 22%;">Resolution</th>
+        <th style="width: 10%;">Wk</th>
+      </tr>
+    </thead>
+    <tbody id="archive-issues-tbody"></tbody>
+  </table>
+</section>
+
+<!-- ============ 12 REFERENCE ============ -->
+<section class="panel" id="panel-reference">
+  <div class="section-head">
+    <div class="section-eyebrow">Section Twelve</div>
+    <h1 class="section-title">Reference</h1>
+    <p class="section-sub">Probing questions and department visions.</p>
+  </div>
+
+  <h3 style="font-family: var(--font-display); font-size: 24px; margin: 24px 0 16px;">Probing Questions</h3>
+  <div class="reading">
+    <ol>
+      <li>Are our numbers truly accurate (single source of truth) or are teams keeping side spreadsheets?</li>
+      <li>Which KPIs are trending downward even if still above target?</li>
+      <li>Are we relying too much on lagging metrics (revenue, CSAT) and not enough on leading indicators?</li>
+      <li>Where are we seeing variability or outliers we've dismissed as one-offs?</li>
+      <li>Are any metrics "green" on the surface but masking hidden issues?</li>
+      <li>What are clients not saying directly but hinting at in tone, requests, or behaviour?</li>
+      <li>Have any small complaints been brushed off as minor that could signal a bigger issue?</li>
+      <li>How is the market shifting (competition, pricing, talent expectations) and are we adapting?</li>
+      <li>Are we listening to client feedback loops (CSAT, NPS, ticket trends) or just reporting scores?</li>
+      <li>Are we delivering what clients need today but missing what they'll need in 6–12 months?</li>
+      <li>What's the biggest client frustration we know about but haven't solved yet?</li>
+      <li>Does this issue affect more than one person, team, or department?</li>
+      <li>If unresolved, will it have a client-facing impact?</li>
+      <li>How does this issue tie back to our 3-year picture / quarterly rocks / client success?</li>
+    </ol>
+  </div>
+
+  <h3 style="font-family: var(--font-display); font-size: 24px; margin: 48px 0 16px;">Department Visions</h3>
+  <div id="vto-blocks"></div>
+</section>
+
+</main>
+
+<!-- Setup modal -->
+<div class="modal-overlay" id="setup-modal">
+  <div class="modal">
+    <h2>Connect to Google Sheet</h2>
+    <p>Paste the Web App URL from your deployed Apps Script. This file remembers it locally — set once per device.</p>
+    <label>Apps Script Web App URL</label>
+    <input type="text" id="api-url-input" placeholder="https://script.google.com/macros/s/.../exec" />
+    <label>Your name (for change tracking)</label>
+    <input type="text" id="user-name-input" placeholder="e.g. Mond" />
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="closeSetup()">Cancel</button>
+      <button class="btn primary" onclick="saveSetup()">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ====================================================================
+   STATE
+   ==================================================================== */
+const STATE = {
+  apiUrl: localStorage.getItem('l10_api_url') || '',
+  userName: localStorage.getItem('l10_user_name') || '',
+  data: {
+    meeting: {},
+    attendance: [],
+    scorecard: [],
+    rocks: [],
+    headlines: [],
+    todos: [],
+    issues: [],
+    feedback: [],
+    rate: [],
+    trends: { weeks: [], rows: [] },
+    archive_todos: [],
+    archive_issues: [],
+    visions: []
+  },
+  dirty: new Set(),
+};
+
+const VTO_DEFAULT = [
+  ["Operations Support (overall)", "To be a trusted strategic partner that strengthens the organization's foundation by ensuring financial integrity, operational & governance excellence, and technology innovation — enabling scalable, data-driven, and sustainable growth as a leading offshore managed services provider."],
+  ["Finance & Admin", "To serve as a trusted strategic partner driving sustainable growth by ensuring financial integrity, maximizing operational efficiency, and delivering actionable insights that enable sound business decisions and reinforce our position as a leading offshore managed services provider."],
+  ["IT", "To become a trusted IT Business Partner — an elite team that not only supports, but advises, innovates, and collaborates as strategic consultants across the organization."],
+  ["Compliance", "[Compliance vision — to be set]"],
+  ["HR (reference)", "Redefining HR as a trusted, reliable, strategic, and solutions-driven partner — connecting people and businesses, empowering growth, and championing change."]
+];
+
+/* ====================================================================
+   TAB NAV
+   ==================================================================== */
+document.querySelectorAll('nav.tabs button').forEach(b => {
+  b.addEventListener('click', () => showPanel(b.dataset.panel));
+});
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelector(`nav.tabs button[data-panel="${name}"]`)?.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ====================================================================
+   SETUP MODAL
+   ==================================================================== */
+function openSetup() {
+  document.getElementById('api-url-input').value = STATE.apiUrl;
+  document.getElementById('user-name-input').value = STATE.userName;
+  document.getElementById('setup-modal').classList.add('show');
+}
+function closeSetup() { document.getElementById('setup-modal').classList.remove('show'); }
+function saveSetup() {
+  STATE.apiUrl = document.getElementById('api-url-input').value.trim();
+  STATE.userName = document.getElementById('user-name-input').value.trim();
+  localStorage.setItem('l10_api_url', STATE.apiUrl);
+  localStorage.setItem('l10_user_name', STATE.userName);
+  closeSetup();
+  toast('Saved. Loading data…', 'success');
+  loadAll();
+}
+
+/* ====================================================================
+   API LAYER
+   ==================================================================== */
+async function api(action, payload = {}) {
+  if (!STATE.apiUrl) {
+    toast('Set the Apps Script URL in Settings first', 'error');
+    throw new Error('No API URL configured');
+  }
+  setConnection('syncing');
+  // Apps Script Web Apps require text/plain to avoid CORS preflight
+  const res = await fetch(STATE.apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action, payload, user: STATE.userName }),
+  });
+  const json = await res.json();
+  setConnection(json.ok ? 'online' : 'offline');
+  if (!json.ok) throw new Error(json.error || 'Unknown error');
+  return json.data;
+}
+
+function setConnection(state) {
+  const pill = document.getElementById('connection-pill');
+  const txt = document.getElementById('connection-text');
+  pill.classList.remove('offline', 'syncing');
+  if (state === 'syncing') { pill.classList.add('syncing'); txt.textContent = 'Syncing'; }
+  else if (state === 'offline') { pill.classList.add('offline'); txt.textContent = 'Offline'; }
+  else { txt.textContent = 'Live'; }
+}
+
+/* ====================================================================
+   LOAD ALL
+   ==================================================================== */
+async function loadAll() {
+  if (!STATE.apiUrl) {
+    toast('Configure Apps Script URL in Settings to connect.', 'error');
+    renderVisions(VTO_DEFAULT);
+    return;
+  }
+  try {
+    const data = await api('readAll');
+    STATE.data = { ...STATE.data, ...data };
+    renderAll();
+    toast('Loaded latest from sheet', 'success');
+  } catch (e) {
+    toast('Load failed: ' + e.message, 'error');
+    renderVisions(VTO_DEFAULT);
+  }
+}
+
+async function saveAll() {
+  if (STATE.dirty.size === 0) { toast('No changes to save', 'success'); return; }
+  try {
+    const data = STATE.data;
+    await api('writeAll', data);
+    STATE.dirty.clear();
+    document.querySelectorAll('.dirty-row').forEach(el => el.classList.remove('dirty-row'));
+    toast(`Saved. ${getTotalRowCount()} rows synced.`, 'success');
+  } catch (e) {
+    toast('Save failed: ' + e.message, 'error');
+  }
+}
+
+function getTotalRowCount() {
+  return ['scorecard','rocks','headlines','todos','issues','feedback','rate']
+    .reduce((sum, k) => sum + (STATE.data[k]?.length || 0), 0);
+}
+
+/* ====================================================================
+   RENDERING
+   ==================================================================== */
+function renderAll() {
+  renderMeeting();
+  renderAttendance();
+  renderTable('scorecard');
+  renderTable('rocks');
+  renderTable('headlines');
+  renderTable('todos');
+  renderTable('issues');
+  renderTable('feedback');
+  renderTable('rate');
+  renderTrends();
+  renderArchive();
+  renderVisions(STATE.data.visions?.length ? STATE.data.visions : VTO_DEFAULT);
+  updateRateAvg();
+}
+
+function renderMeeting() {
+  const m = STATE.data.meeting || {};
+  document.getElementById('m-date').value = m.date || '';
+  document.getElementById('m-week').value = m.week || '';
+  document.getElementById('m-facilitator').value = m.facilitator || '';
+  document.getElementById('m-notetaker').value = m.notetaker || '';
+  document.getElementById('m-process-owner').value = m.processOwner || '';
+
+  document.getElementById('week-num').textContent = m.week || '—';
+  document.getElementById('meeting-date').textContent = m.date || '—';
+  document.getElementById('facilitator-name').textContent = m.facilitator || '—';
+}
+['m-date','m-week','m-facilitator','m-notetaker','m-process-owner'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const map = {'m-date':'date','m-week':'week','m-facilitator':'facilitator','m-notetaker':'notetaker','m-process-owner':'processOwner'};
+    STATE.data.meeting = STATE.data.meeting || {};
+    STATE.data.meeting[map[id]] = document.getElementById(id).value;
+    STATE.dirty.add('meeting');
+    if (id === 'm-week') document.getElementById('week-num').textContent = document.getElementById(id).value || '—';
+    if (id === 'm-date') document.getElementById('meeting-date').textContent = document.getElementById(id).value || '—';
+    if (id === 'm-facilitator') document.getElementById('facilitator-name').textContent = document.getElementById(id).value || '—';
+  });
+});
+
+function renderAttendance() {
+  const tb = document.getElementById('attendance-tbody');
+  tb.innerHTML = '';
+  (STATE.data.attendance || []).forEach((row, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${esc(row.name)}" data-k="name" data-i="${idx}"/></td>
+      <td><input type="text" value="${esc(row.role)}" data-k="role" data-i="${idx}"/></td>
+      <td><select data-k="status" data-i="${idx}">
+        <option ${eq(row.status,'')}>—</option>
+        <option ${eq(row.status,'P')}>P</option>
+        <option ${eq(row.status,'A')}>A</option>
+        <option ${eq(row.status,'Late')}>Late</option>
+        <option ${eq(row.status,'Excused')}>Excused</option>
+      </select></td>
+    `;
+    tr.querySelectorAll('input,select').forEach(el => {
+      el.addEventListener('input', () => {
+        const i = +el.dataset.i, k = el.dataset.k;
+        STATE.data.attendance[i][k] = el.value;
+        STATE.dirty.add('attendance');
+      });
+    });
+    tb.appendChild(tr);
+  });
+}
+function addAttendee() {
+  STATE.data.attendance = STATE.data.attendance || [];
+  STATE.data.attendance.push({ name: '', role: '', status: '' });
+  STATE.dirty.add('attendance');
+  renderAttendance();
+}
+
+/* --------------- TABLE SCHEMA --------------- */
+const SCHEMAS = {
+  scorecard: {
+    cols: [
+      { k: 'dept', type: 'select', opts: ['Finance','Admin','Compliance','IT'] },
+      { k: 'kpi', type: 'text' },
+      { k: 'goal', type: 'text' },
+      { k: 'definition', type: 'text' },
+      { k: 'owner', type: 'text' },
+      { k: 'actual', type: 'text' },
+      { k: 'status', type: 'status', opts: ['','On Track','At Risk','Off Track','N/A'] },
+      { k: 'notes', type: 'text' }
+    ]
+  },
+  rocks: {
+    cols: [
+      { k: 'dept', type: 'select', opts: ['Finance','Admin','Compliance','IT','HR'] },
+      { k: 'rock', type: 'text' },
+      { k: 'owner', type: 'text' },
+      { k: 'quarter', type: 'select', opts: ['Q1','Q2','Q3','Q4'] },
+      { k: 'due', type: 'date' },
+      { k: 'pct', type: 'text' },
+      { k: 'status', type: 'status', opts: ['','On Track','At Risk','Off Track','Done'] },
+      { k: 'update', type: 'text' }
+    ]
+  },
+  headlines: {
+    cols: [
+      { k: 'type', type: 'select', opts: ['','Customer Good','Customer Bad','Employee Good','Employee Bad','Kudos'] },
+      { k: 'headline', type: 'text' },
+      { k: 'raisedBy', type: 'text' },
+      { k: 'date', type: 'date' },
+      { k: 'notes', type: 'text' }
+    ]
+  },
+  todos: {
+    cols: [
+      { k: 'dept', type: 'select', opts: ['Finance','Admin','Compliance','IT','All'] },
+      { k: 'todo', type: 'text' },
+      { k: 'owner', type: 'text' },
+      { k: 'helpFrom', type: 'text' },
+      { k: 'due', type: 'date' },
+      { k: 'status', type: 'status', opts: ['','Not Started','Ongoing','Done','Blocked','Cancelled'] },
+      { k: 'notes', type: 'text' }
+    ]
+  },
+  issues: {
+    cols: [
+      { k: 'priority', type: 'priority', opts: ['','P1','P2','P3'] },
+      { k: 'source', type: 'select', opts: ['','Finance','Admin','Compliance','IT','Sales','HR','Client Success','All'] },
+      { k: 'issue', type: 'text' },
+      { k: 'raisedBy', type: 'text' },
+      { k: 'date', type: 'date' },
+      { k: 'context', type: 'text' },
+      { k: 'endInMind', type: 'text' },
+      { k: 'nextStep', type: 'text' },
+      { k: 'resolved', type: 'status', opts: ['','Yes','No','Carried Over'] }
+    ]
+  },
+  feedback: {
+    cols: [
+      { k: 'source', type: 'text' },
+      { k: 'feedback', type: 'text' },
+      { k: 'isIssue', type: 'select', opts: ['','Yes','No','Neutral'] },
+      { k: 'raisedBy', type: 'text' },
+      { k: 'date', type: 'date' },
+      { k: 'status', type: 'select', opts: ['','New','Discussed','Moved to Issues','Moved to To-Do','Closed'] }
+    ]
+  },
+  rate: {
+    cols: [
+      { k: 'name', type: 'text' },
+      { k: 'rating', type: 'number' },
+      { k: 'bestQuestion', type: 'text' },
+      { k: 'commitment', type: 'text' }
+    ]
+  }
+};
+
+function renderTable(key) {
+  const tbody = document.getElementById(`${key}-tbody`);
+  if (!tbody) return;
+  const rows = STATE.data[key] || [];
+  tbody.innerHTML = '';
+
+  rows.forEach((row, idx) => {
+    const tr = document.createElement('tr');
+    SCHEMAS[key].cols.forEach(col => {
+      const td = document.createElement('td');
+      td.appendChild(buildField(col, row[col.k] || '', idx, key, col.k));
+      td.style.position = 'relative';
+      tr.appendChild(td);
+    });
+    // Add row-action delete (last column)
+    const actionTd = document.createElement('td');
+    actionTd.className = 'row-actions';
+    actionTd.innerHTML = `<button onclick="deleteRow('${key}', ${idx})">Delete</button>`;
+    tr.appendChild(actionTd);
+    tbody.appendChild(tr);
+  });
+
+  filterTable(key);
+}
+
+function buildField(col, val, idx, table, key) {
+  const onInput = (e) => {
+    STATE.data[table][idx][key] = e.target.value;
+    STATE.dirty.add(table);
+    e.target.closest('tr')?.classList.add('dirty-row');
+    if (table === 'rate' && key === 'rating') updateRateAvg();
+    if (col.type === 'status') applyStatusClass(e.target);
+    if (col.type === 'priority') applyPriorityClass(e.target);
+  };
+
+  if (col.type === 'select' || col.type === 'status' || col.type === 'priority') {
+    const sel = document.createElement('select');
+    if (col.type === 'status') sel.parentNode_class = 'status-cell';
+    col.opts.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o; opt.textContent = o || '—';
+      if (o === val) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', onInput);
+    if (col.type === 'status') applyStatusClass(sel, val);
+    if (col.type === 'priority') applyPriorityClass(sel, val);
+    return sel;
+  }
+  if (col.type === 'date') {
+    const i = document.createElement('input');
+    i.type = 'date'; i.value = val; i.addEventListener('input', onInput);
+    return i;
+  }
+  if (col.type === 'number') {
+    const i = document.createElement('input');
+    i.type = 'number'; i.min = 1; i.max = 10; i.value = val; i.addEventListener('input', onInput);
+    return i;
+  }
+  // default text
+  const ta = document.createElement('textarea');
+  ta.value = val;
+  ta.rows = 1;
+  ta.addEventListener('input', (e) => {
+    e.target.style.height = 'auto';
+    e.target.style.height = e.target.scrollHeight + 'px';
+    onInput(e);
+  });
+  return ta;
+}
+
+function applyStatusClass(el, valOverride) {
+  const v = valOverride !== undefined ? valOverride : el.value;
+  el.className = el.className.replace(/\bs-[\w-]+\b/g, '').trim();
+  const map = {
+    'On Track':'s-on-track','Done':'s-done','Yes':'s-yes',
+    'At Risk':'s-at-risk','Ongoing':'s-ongoing','Carried Over':'s-carried',
+    'Off Track':'s-off-track','Blocked':'s-blocked','No':'s-no'
+  };
+  if (map[v]) el.classList.add(map[v]);
+}
+function applyPriorityClass(el, valOverride) {
+  const v = valOverride !== undefined ? valOverride : el.value;
+  el.className = el.className.replace(/\bp-P\d\b/g, '').trim();
+  if (v === 'P1') el.classList.add('p-P1');
+  if (v === 'P2') el.classList.add('p-P2');
+  if (v === 'P3') el.classList.add('p-P3');
+}
+
+function addRow(key) {
+  STATE.data[key] = STATE.data[key] || [];
+  const empty = {};
+  SCHEMAS[key].cols.forEach(c => empty[c.k] = '');
+  STATE.data[key].push(empty);
+  STATE.dirty.add(key);
+  renderTable(key);
+  // Scroll to bottom of table
+  const last = document.querySelector(`#${key}-tbody tr:last-child input,
+                                       #${key}-tbody tr:last-child textarea,
+                                       #${key}-tbody tr:last-child select`);
+  last?.focus();
+}
+
+function deleteRow(key, idx) {
+  if (!confirm('Delete this row? This cannot be undone after saving.')) return;
+  STATE.data[key].splice(idx, 1);
+  STATE.dirty.add(key);
+  renderTable(key);
+}
+
+function filterTable(key) {
+  const search = (document.getElementById(`${key}-search`)?.value || '').toLowerCase();
+  const dept = document.getElementById(`${key}-dept`)?.value || '';
+  const status = document.getElementById(`${key}-status`)?.value || '';
+  const priority = document.getElementById(`${key}-priority`)?.value || '';
+  const resolved = document.getElementById(`${key}-resolved`)?.value || '';
+  const quarter = document.getElementById(`${key}-quarter`)?.value || '';
+
+  const rows = document.querySelectorAll(`#${key}-tbody tr`);
+  let visible = 0;
+  rows.forEach((tr, idx) => {
+    const row = STATE.data[key][idx];
+    if (!row) return;
+    const text = JSON.stringify(row).toLowerCase();
+    let show = !search || text.includes(search);
+    if (show && dept && row.dept !== dept) show = false;
+    if (show && status && row.status !== status) show = false;
+    if (show && priority && row.priority !== priority) show = false;
+    if (show && resolved && row.resolved !== resolved) show = false;
+    if (show && quarter && row.quarter !== quarter) show = false;
+    tr.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  const c = document.getElementById(`${key}-count`);
+  if (c) c.textContent = `${visible} of ${rows.length}`;
+}
+
+function updateRateAvg() {
+  const ratings = (STATE.data.rate || []).map(r => parseFloat(r.rating)).filter(n => !isNaN(n));
+  const avg = ratings.length ? (ratings.reduce((a,b) => a+b, 0) / ratings.length) : null;
+  document.getElementById('rate-avg').textContent = avg ? avg.toFixed(1) : '—';
+}
+
+/* ---------- TRENDS ---------- */
+function renderTrends() {
+  const trends = STATE.data.trends || { weeks: [], rows: [] };
+  const thead = document.getElementById('trends-thead');
+  const tbody = document.getElementById('trends-tbody');
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+
+  const weeks = trends.weeks?.length ? trends.weeks : [];
+  const headRow = document.createElement('tr');
+  headRow.innerHTML = `<th>Dept</th><th>KPI</th><th>Goal</th><th>Owner</th>` +
+    weeks.map(w => `<th>${esc(w)}</th>`).join('');
+  thead.appendChild(headRow);
+
+  (trends.rows || []).forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="padding: 8px 10px;">${esc(r.dept)}</td>
+                    <td style="padding: 8px 10px;">${esc(r.kpi)}</td>
+                    <td style="padding: 8px 10px;">${esc(r.goal)}</td>
+                    <td style="padding: 8px 10px;">${esc(r.owner)}</td>` +
+      weeks.map((_, i) => `<td style="padding: 4px 6px;"><input value="${esc((r.values||[])[i] || '')}" /></td>`).join('');
+    tbody.appendChild(tr);
+  });
+  document.getElementById('trends-count').textContent = `${(trends.rows||[]).length} KPIs · ${weeks.length} weeks`;
+}
+
+async function archiveCurrentWeek() {
+  if (!confirm('Archive this week\'s scorecard actuals into KPI Trend History?')) return;
+  try {
+    await api('archiveWeek', { week: STATE.data.meeting?.week || '' });
+    toast('Week archived. Reloading…', 'success');
+    loadAll();
+  } catch (e) {
+    toast('Archive failed: ' + e.message, 'error');
+  }
+}
+
+/* ---------- ARCHIVE ---------- */
+function renderArchive() {
+  const t1 = document.getElementById('archive-todos-tbody');
+  const t2 = document.getElementById('archive-issues-tbody');
+  t1.innerHTML = '';
+  t2.innerHTML = '';
+  (STATE.data.archive_todos || []).forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="padding: 10px;">${esc(r.closed)}</td>
+                    <td style="padding: 10px;">${esc(r.dept)}</td>
+                    <td style="padding: 10px;">${esc(r.todo)}</td>
+                    <td style="padding: 10px;">${esc(r.owner)}</td>
+                    <td style="padding: 10px;">${esc(r.outcome)}</td>
+                    <td style="padding: 10px;">${esc(r.week)}</td>`;
+    t1.appendChild(tr);
+  });
+  (STATE.data.archive_issues || []).forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="padding: 10px;">${esc(r.resolved)}</td>
+                    <td style="padding: 10px;">${esc(r.source)}</td>
+                    <td style="padding: 10px;">${esc(r.issue)}</td>
+                    <td style="padding: 10px;">${esc(r.raisedBy)}</td>
+                    <td style="padding: 10px;">${esc(r.resolution)}</td>
+                    <td style="padding: 10px;">${esc(r.week)}</td>`;
+    t2.appendChild(tr);
+  });
+  if (!STATE.data.archive_todos?.length) t1.innerHTML = '<tr><td colspan="6" class="empty">No archived to-dos yet</td></tr>';
+  if (!STATE.data.archive_issues?.length) t2.innerHTML = '<tr><td colspan="6" class="empty">No archived issues yet</td></tr>';
+}
+
+/* ---------- VISIONS ---------- */
+function renderVisions(rows) {
+  const wrap = document.getElementById('vto-blocks');
+  wrap.innerHTML = '';
+  rows.forEach(([team, vision]) => {
+    const div = document.createElement('div');
+    div.className = 'vision-block';
+    div.innerHTML = `<div class="vision-team">${esc(team)}</div>
+                     <div class="vision-text">${esc(vision)}</div>`;
+    wrap.appendChild(div);
+  });
+}
+
+/* ---------- UTILITIES ---------- */
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function eq(a, b) { return a === b ? 'selected' : ''; }
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* ---------- KEYBOARD SHORTCUTS ---------- */
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); saveAll(); }
+});
+
+/* ====================================================================
+   BOOTSTRAP
+   ==================================================================== */
+window.addEventListener('load', () => {
+  if (!STATE.apiUrl) {
+    openSetup();
+    renderVisions(VTO_DEFAULT);
+    setConnection('offline');
+  } else {
+    loadAll();
+  }
+});
+</script>
+</body>
+</html>
