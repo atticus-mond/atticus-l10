@@ -114,50 +114,88 @@ textarea{resize:vertical;min-height:62px}
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, serverTimestamp }
+  import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp, getDoc }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
   window._fbReady = false;
+  window._isSaving = false; // FIX 1: prevent save-triggered listener loop
+
   window._fbInit = function(cfg){
     try{
-      const app = initializeApp(cfg);
-      const db  = getFirestore(app);
+      // FIX 2: prevent duplicate app init on re-connect
+      let app;
+      try{ app = initializeApp(cfg); }
+      catch(e){ 
+        if(e.code === 'app/duplicate-app'){
+          const {getApp} = window._fbApps || {};
+          app = window._existingApp;
+        } else { throw e; }
+      }
+      window._existingApp = app;
+
+      const db = getFirestore(app);
       window._db  = db;
-      window._doc = doc(db,'atticus_l10','state');
-      // Real-time listener
-      onSnapshot(window._doc, snap=>{
+      window._doc = doc(db, 'atticus_l10', 'state');
+
+      // FIX 3: real-time listener — always apply remote data, no timestamp gating
+      // The timestamp gate was blocking valid remote updates
+      onSnapshot(window._doc, snap => {
         if(snap.exists()){
           const remote = snap.data();
           if(remote && remote.payload){
-            const incoming = JSON.parse(remote.payload);
-            // Only apply if newer than our local version
-            if(!window._lastSaveTs || (remote.ts && remote.ts.toMillis && remote.ts.toMillis() > window._lastSaveTs)){
+            // FIX 4: skip if WE just triggered this save (avoid echo)
+            if(window._isSaving){
+              window._isSaving = false;
+              return;
+            }
+            try{
+              const incoming = JSON.parse(remote.payload);
+              // Deep merge: remote wins for all keys
               window.S = incoming;
-              window._lastSaveTs = remote.ts ? remote.ts.toMillis() : Date.now();
-              if(window.renderAll) window.renderAll();
+              // Also update localStorage so offline fallback is current
+              try{ localStorage.setItem('atticus_l10_v5', remote.payload); }catch(e){}
+              // Re-render the whole UI
+              if(typeof renderAll === 'function') renderAll();
               showFbStatus('synced');
+              updateSyncTime();
+            } catch(parseErr){
+              showFbStatus('parse error');
             }
           }
+        } else {
+          // Document doesn't exist yet — push our local state up
+          showFbStatus('connected — pushing local data');
+          if(window.S) window._fbSave(window.S);
         }
-      }, err=>{
-        showFbStatus('error: '+err.code);
+      }, err => {
+        console.error('Firestore listener error:', err);
+        showFbStatus('error: ' + err.code);
       });
+
       window._fbReady = true;
       showFbStatus('connected');
-      document.getElementById('fb-setup-banner').style.display='none';
-      document.getElementById('fb-status-bar').style.display='flex';
+      document.getElementById('fb-setup-banner').style.display = 'none';
+      document.getElementById('fb-status-bar').style.display = 'flex';
+
     } catch(e){
-      showFbStatus('init error: '+e.message);
+      console.error('Firebase init error:', e);
+      showFbStatus('init error: ' + e.message);
     }
   };
+
   window._fbSave = async function(payload){
     if(!window._db || !window._doc) return false;
     try{
-      const {setDoc, serverTimestamp} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-      await setDoc(window._doc,{payload:JSON.stringify(payload),ts:serverTimestamp()},{merge:false});
-      window._lastSaveTs = Date.now();
+      window._isSaving = true; // flag so listener ignores our own echo
+      await setDoc(window._doc, {
+        payload: JSON.stringify(payload),
+        ts: serverTimestamp()
+      }, {merge: false});
       return true;
     } catch(e){
-      showFbStatus('save error: '+e.message);
+      window._isSaving = false;
+      console.error('Firestore save error:', e);
+      showFbStatus('save error: ' + e.message);
       return false;
     }
   };
@@ -771,8 +809,9 @@ function save(silent){
   // Save to Firebase if connected
   if(window._fbReady && window._fbSave){
     window._fbSave(S).then(function(ok){
-      if(ok && !silent){showSaved();updateSyncTime();}
-      else if(!ok && !silent){showSaved();}
+      if(!silent){ showSaved(); updateSyncTime(); }
+    }).catch(function(e){
+      if(!silent) showSaved(); // still confirm local save
     });
   } else {
     if(!silent) showSaved();
@@ -788,14 +827,25 @@ function load(){
   // Firebase real-time listener will update S and re-render when it fires
   renderAll();
   // Try to load saved Firebase config and auto-connect
+  // Auto-reconnect: retry up to 5 times with 1s intervals for module to load
   try{
-    const savedCfg=localStorage.getItem('atticus_fb_cfg');
+    const savedCfg = localStorage.getItem('atticus_fb_cfg');
     if(savedCfg){
-      const cfg=JSON.parse(savedCfg);
-      if(window._fbInit) window._fbInit(cfg);
-      else setTimeout(function(){if(window._fbInit) window._fbInit(cfg);},1500);
+      const cfg = JSON.parse(savedCfg);
+      var attempts = 0;
+      var tryConnect = function(){
+        attempts++;
+        if(window._fbInit){
+          window._fbInit(cfg);
+        } else if(attempts < 8){
+          setTimeout(tryConnect, 800);
+        } else {
+          console.warn('Firebase module did not load after 8 attempts');
+        }
+      };
+      setTimeout(tryConnect, 500);
     }
-  }catch(e){}
+  }catch(e){ console.error('Auto-reconnect error:', e); }
 }
 function showSaved(){const el=document.getElementById('save-ind');el.textContent='✓ Saved';el.style.opacity='1';setTimeout(()=>{el.style.opacity='0.5';},2000);}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -806,7 +856,16 @@ const DOT={'done':'#1D9E75','on-track':'#1D9E75','ongoing':'#EF9F27','stuck':'#E
 
 function stSel(val,onChange,small){
   const sz=small?'font-size:10px;padding:1px 18px 1px 4px':'';
-  return`<select class="status-select ${SC[val]||'s-not-started'}" style="${sz}" onchange="${onChange};this.className='status-select '+({'done':'s-done','on-track':'s-on-track','ongoing':'s-ongoing','stuck':'s-stuck','not-started':'s-not-started'}[this.value]||'s-not-started')">${Object.entries(ST).map(([k,v])=>`<option value="${k}"${val===k?' selected':''}>${v}</option>`).join('')}</select>`;
+  // Use data-onchange attribute to avoid quote conflicts; handler applied via applyStSel
+  const opts=Object.entries(ST).map(([k,v])=>`<option value="${k}"${val===k?' selected':''}>${v}</option>`).join('');
+  return`<select class="status-select ${SC[val]||'s-not-started'}" style="${sz}" onchange="handleStSel(this,'${onChange.replace(/'/g,"\'")}')">${opts}</select>`;
+}
+function handleStSel(el, onChangeFn){
+  // Update visual class immediately
+  el.className='status-select '+( SC[el.value]||'s-not-started');
+  // Execute the logic string
+  try{ (new Function('el', onChangeFn.replace(/this\.value/g,"el.value").replace(/this/g,"el")))(el); }
+  catch(e){ console.error('stSel handler error',e); }
 }
 
 function renderAll(){renderVision();renderSC();renderRocks();renderFB();renderTodos();renderIssues();renderResolved();renderProbing();renderRatings();renderAI();}
@@ -925,6 +984,19 @@ function renderSCHistory(){
 // ============================================================
 //  ROCKS — milestone table matching Excel format
 // ============================================================
+function changeRockStatus(el, ri){
+  pushUndo();
+  S.rocks[ri].status = el.value;
+  save();
+  renderRocks();
+}
+function changeMsStatus(el, ri, mi){
+  pushUndo();
+  S.rocks[ri].milestones[mi].status = el.value;
+  save();
+  el.className = 'status-select ' + (SC[el.value]||'s-not-started');
+}
+
 function renderRocks(){
   const el=document.getElementById('rocks-list'),al=document.getElementById('rocks-arc-list');
   const active=S.rocks.filter(r=>!r.archived),archived=S.rocks.filter(r=>r.archived);
@@ -939,7 +1011,7 @@ function rockCard(r,ri,isArc=false){
     <td contenteditable="true" onblur="S.rocks[${ri}].milestones[${mi}].responsible=this.textContent.trim();save()">${esc(m.responsible||'')}</td>
     <td contenteditable="true" onblur="S.rocks[${ri}].milestones[${mi}].accountable=this.textContent.trim();save()">${esc(m.accountable||'')}</td>
     <td><input type="date" value="${esc(m.deadline||'')}" style="width:120px;font-size:11px;padding:2px 4px" onchange="pushUndo();S.rocks[${ri}].milestones[${mi}].deadline=this.value;save()"></td>
-    <td>${stSel(m.status||'not-started',`pushUndo();S.rocks[${ri}].milestones[${mi}].status=this.value;save()`,true)}</td>
+    <td>${stSel(m.status||'not-started','changeMsStatus(el,'+ri+','+mi+')',true)}</td>
     <td contenteditable="true" onblur="S.rocks[${ri}].milestones[${mi}].notes=this.textContent.trim();save()" style="color:var(--text2)">${esc(m.notes||'')}</td>
     <td><button class="btn btn-icon btn-sm" onclick="pushUndo();S.rocks[${ri}].milestones.splice(${mi},1);save();renderRocks()" style="color:var(--red-text)"><i class="ti ti-x"></i></button></td>
   </tr>`).join('');
@@ -952,7 +1024,7 @@ function rockCard(r,ri,isArc=false){
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <span style="font-size:11px;color:var(--text3)">Owner: <b>${esc(r.owner)}</b></span>
         ${r.deadline?`<span style="font-size:11px;color:var(--text3)">Deadline: <b>${esc(r.deadline)}</b></span>`:''}
-        ${stSel(r.status,`pushUndo();S.rocks[${ri}].status=this.value;save();renderRocks()`)}
+        ${stSel(r.status,'changeRockStatus(el,'+ri+')')}
         <button class="btn btn-icon btn-sm" onclick="editRock(${ri})" title="Edit"><i class="ti ti-edit"></i></button>
         <button class="btn btn-icon btn-sm" onclick="addMilestone(${ri})" title="Add milestone"><i class="ti ti-plus"></i></button>
         <button class="btn btn-icon btn-sm" onclick="pushUndo();S.rocks[${ri}].archived=!S.rocks[${ri}].archived;save();renderRocks()" title="${isArc?'Unarchive':'Archive'}"><i class="ti ti-archive"></i></button>
@@ -1110,6 +1182,20 @@ function saveFBEdit(){
 //  TO-DO
 // ============================================================
 const ABADGE={Finance:'badge-blue',Admin:'badge-gray',Compliance:'badge-red',All:'badge-amber',IT:'badge-green'};
+function changeTodoStatus(el, ti){
+  var val = el.value;
+  pushUndo();
+  S.todos[ti].status = val;
+  if(val === 'done'){
+    S.todos[ti].archived = true;
+    save();
+    renderTodos();
+  } else {
+    save();
+    // Just update the visual — no full re-render needed for status change
+    el.className = 'status-select ' + (SC[val]||'s-not-started');
+  }
+}
 function renderTodos(){
   const tb=document.getElementById('todos-body'),atb=document.getElementById('todos-arc-body'),ee=document.getElementById('td-arc-empty');
   const active=S.todos.filter(t=>!t.archived),archived=S.todos.filter(t=>t.archived);
@@ -1124,7 +1210,7 @@ function tdRow(t,ti){
     <td style="white-space:nowrap">${esc(t.poc)||'—'}</td>
     <td style="white-space:nowrap">${esc(t.help)||'—'}</td>
     <td style="white-space:nowrap">${t.adjDue?esc(t.adjDue)+'*':t.due?esc(t.due):'—'}</td>
-    <td>${stSel(t.status||'ongoing',`pushUndo();S.todos[${ti}].status=this.value;if(this.value==='done'){S.todos[${ti}].archived=true;}save();renderTodos()`)}</td>
+    <td>${stSel(t.status||'ongoing','changeTodoStatus(el,'+ti+')')}</td>
     <td style="max-width:140px;font-size:11px;color:var(--text2)">${esc(t.notes)||''}</td>
     <td style="white-space:nowrap">
       <button class="btn btn-icon btn-sm" onclick="editTodo(${ti})" title="Edit"><i class="ti ti-edit"></i></button>
@@ -1170,6 +1256,17 @@ function saveTdEdit(){
 // ============================================================
 //  ISSUES
 // ============================================================
+function changeIssueStatus(el, ri){
+  var val = el.value;
+  pushUndo();
+  S.issues[ri].status = val;
+  if(val === 'done'){
+    resolveIssue(ri);
+  } else {
+    save();
+    el.className = 'status-select ' + (SC[val]||'s-not-started');
+  }
+}
 function renderIssues(){
   const el=document.getElementById('issues-list'),al=document.getElementById('iss-arc-list');
   const active=S.issues.filter(i=>!i.archived&&!i.resolved),archived=S.issues.filter(i=>i.archived&&!i.resolved);
@@ -1179,7 +1276,7 @@ function renderIssues(){
     <div>
       <div><span class="badge ${pb[iss.priority]||'badge-gray'}">${esc(iss.priority)}</span> <b>${esc(iss.source)}</b>${iss.by?' · '+esc(iss.by):''}</div>
       <div style="margin-top:4px;font-size:13px">${esc(iss.text)}</div>
-      <div style="margin-top:4px">${stSel(iss.status||'ongoing',`pushUndo();S.issues[${ri}].status=this.value;if(this.value==='done'){resolveIssue(${ri});}save();renderIssues()`)}</div>
+      <div style="margin-top:4px">${stSel(iss.status||'ongoing','changeIssueStatus(el,'+ri+')')}</div>
     </div>
     <div style="display:flex;gap:4px;flex-shrink:0">
       <button class="btn btn-green btn-sm" onclick="openIDS(${ri})">IDS</button>
@@ -1321,6 +1418,12 @@ function closeWeek(){
 //  AI
 // ============================================================
 const DBADGE={FIN:'badge-blue',ADM:'badge-gray',COM:'badge-red',OPS:'badge-amber',IT:'badge-green'};
+function changeAIStatus(el, ai){
+  pushUndo();
+  S.ai[ai].status = el.value;
+  save();
+  renderAI();
+}
 function renderAI(){
   const el=document.getElementById('ai-list'),al=document.getElementById('ai-arc-list');
   const active=S.ai.filter(a=>!a.archived),archived=S.ai.filter(a=>a.archived);
@@ -1329,7 +1432,7 @@ function renderAI(){
       <div class="card-header">
         <div style="display:flex;gap:8px;align-items:center"><span class="badge ${DBADGE[a.dept]||'badge-gray'}">${esc(a.dept)}</span><span style="font-size:13px;font-weight:500">${esc(a.name)}</span></div>
         <div style="display:flex;gap:5px;align-items:center">
-          ${stSel(a.status,`pushUndo();S.ai[${ai}].status=this.value;save();renderAI()`)}
+          ${stSel(a.status,'changeAIStatus(el,'+ai+')')}
           <button class="btn btn-icon btn-sm" onclick="editAI(${ai})" title="Edit"><i class="ti ti-edit"></i></button>
           <button class="btn btn-icon btn-sm" onclick="pushUndo();S.ai[${ai}].archived=!S.ai[${ai}].archived;save();renderAI()" title="${isArc?'Unarchive':'Archive'}"><i class="ti ti-archive"></i></button>
           <button class="btn btn-icon btn-sm" onclick="if(confirm('Delete?')){pushUndo();S.ai.splice(${ai},1);save();renderAI()}" style="color:var(--red-text)"><i class="ti ti-trash"></i></button>
