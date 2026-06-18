@@ -113,72 +113,70 @@ textarea{resize:vertical;min-height:62px}
 </style>
 <!-- Firebase SDK -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp, getDoc }
+  import { initializeApp, getApps, getApp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   window._fbReady = false;
-  window._isSaving = false; // FIX 1: prevent save-triggered listener loop
+  window._saveInProgress = false;
+  window._saveTimer = null;
 
   window._fbInit = function(cfg){
     try{
-      // FIX 2: prevent duplicate app init on re-connect
-      let app;
-      try{ app = initializeApp(cfg); }
-      catch(e){ 
-        if(e.code === 'app/duplicate-app'){
-          const {getApp} = window._fbApps || {};
-          app = window._existingApp;
-        } else { throw e; }
-      }
-      window._existingApp = app;
+      // Safe init — reuse existing app if already initialized
+      const existingApps = getApps();
+      const app = existingApps.length ? getApp() : initializeApp(cfg);
 
-      const db = getFirestore(app);
+      const db  = getFirestore(app);
+      const ref = doc(db, 'atticus_l10', 'state');
       window._db  = db;
-      window._doc = doc(db, 'atticus_l10', 'state');
+      window._doc = ref;
 
-      // FIX 3: real-time listener — always apply remote data, no timestamp gating
-      // The timestamp gate was blocking valid remote updates
-      onSnapshot(window._doc, snap => {
-        if(snap.exists()){
-          const remote = snap.data();
-          if(remote && remote.payload){
-            // FIX 4: skip if WE just triggered this save (avoid echo)
-            if(window._isSaving){
-              window._isSaving = false;
-              return;
-            }
-            try{
-              const incoming = JSON.parse(remote.payload);
-              // Deep merge: remote wins for all keys
-              window.S = incoming;
-              // Also update localStorage so offline fallback is current
-              try{ localStorage.setItem('atticus_l10_v5', remote.payload); }catch(e){}
-              // Re-render the whole UI
-              if(typeof renderAll === 'function') renderAll();
-              showFbStatus('synced');
-              updateSyncTime();
-            } catch(parseErr){
-              showFbStatus('parse error');
-            }
+      // Real-time listener
+      onSnapshot(ref, snap => {
+        if(!snap.exists()){
+          // First ever connection — push local data to Firestore
+          if(window.S && window._fbSave){
+            window._fbSave(window.S);
           }
-        } else {
-          // Document doesn't exist yet — push our local state up
-          showFbStatus('connected — pushing local data');
-          if(window.S) window._fbSave(window.S);
+          return;
         }
+
+        const remote = snap.data();
+        if(!remote || !remote.payload) return;
+
+        // If we are mid-save, skip this echo — but ONLY skip once
+        if(window._saveInProgress){
+          window._saveInProgress = false;
+          return;
+        }
+
+        // Parse and apply remote state
+        try{
+          const incoming = JSON.parse(remote.payload);
+          window.S = incoming;
+          try{ localStorage.setItem('atticus_l10_v5', remote.payload); }catch(e){}
+          if(typeof renderAll === 'function') renderAll();
+          showFbStatus('synced');
+          updateSyncTime();
+        } catch(e){
+          console.error('Failed to parse remote payload:', e);
+          showFbStatus('sync error — bad data');
+        }
+
       }, err => {
-        console.error('Firestore listener error:', err);
-        showFbStatus('error: ' + err.code);
+        console.error('onSnapshot error:', err);
+        showFbStatus('listener error: ' + err.code);
       });
 
       window._fbReady = true;
       showFbStatus('connected');
       document.getElementById('fb-setup-banner').style.display = 'none';
-      document.getElementById('fb-status-bar').style.display = 'flex';
+      document.getElementById('fb-status-bar').style.display  = 'flex';
 
     } catch(e){
-      console.error('Firebase init error:', e);
+      console.error('Firebase init failed:', e);
       showFbStatus('init error: ' + e.message);
     }
   };
@@ -186,17 +184,47 @@ textarea{resize:vertical;min-height:62px}
   window._fbSave = async function(payload){
     if(!window._db || !window._doc) return false;
     try{
-      window._isSaving = true; // flag so listener ignores our own echo
+      window._saveInProgress = true;
+      // Auto-reset the flag after 3s in case Firestore doesn't echo back
+      clearTimeout(window._saveTimer);
+      window._saveTimer = setTimeout(function(){
+        window._saveInProgress = false;
+      }, 3000);
+
       await setDoc(window._doc, {
         payload: JSON.stringify(payload),
         ts: serverTimestamp()
-      }, {merge: false});
+      }, { merge: false });
+
       return true;
     } catch(e){
-      window._isSaving = false;
-      console.error('Firestore save error:', e);
+      window._saveInProgress = false;
+      console.error('Firestore write error:', e);
       showFbStatus('save error: ' + e.message);
       return false;
+    }
+  };
+
+  // Manual pull — force-read current Firestore state right now
+  window._fbPull = async function(){
+    if(!window._db || !window._doc) return;
+    try{
+      const { getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap = await getDoc(window._doc);
+      if(snap.exists()){
+        const remote = snap.data();
+        if(remote && remote.payload){
+          window._saveInProgress = false; // force accept
+          const incoming = JSON.parse(remote.payload);
+          window.S = incoming;
+          try{ localStorage.setItem('atticus_l10_v5', remote.payload); }catch(e){}
+          if(typeof renderAll === 'function') renderAll();
+          showFbStatus('synced');
+          updateSyncTime();
+        }
+      }
+    } catch(e){
+      showFbStatus('pull error: ' + e.message);
     }
   };
 </script>
@@ -239,6 +267,7 @@ textarea{resize:vertical;min-height:62px}
   <span style="opacity:.5">·</span>
   <span id="fb-last-sync" style="opacity:.7"></span>
   <span style="flex:1"></span>
+  <button class="btn btn-sm" onclick="manualSync()" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);font-size:11px" title="Force pull latest data from Firestore"><i class="ti ti-refresh"></i> Sync now</button>
   <button class="btn btn-sm" onclick="openModal('modal-fb-setup')" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);font-size:11px">⚙ Config</button>
   <button class="btn btn-sm" onclick="exportJSON()" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);font-size:11px"><i class="ti ti-download"></i> Export</button>
 </div>
@@ -1527,6 +1556,15 @@ function importJSON(){
   } catch(e){
     alert('Import failed: '+e.message);
   }
+}
+
+function manualSync(){
+  if(!window._fbPull){
+    showFbStatus('not connected');
+    return;
+  }
+  showFbStatus('syncing...');
+  window._fbPull();
 }
 
 function disconnectFirebase(){
