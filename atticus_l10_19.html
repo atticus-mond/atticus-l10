@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atticus L10 · Finance, Admin & Compliance</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f7f2;--bg2:#e6f2ea;--bg3:#d8eede;
+  --card:#ffffff;
+  --text:#1a2e22;--text2:#4a6b55;--text3:#7a9b84;
+  --border:rgba(0,100,50,0.15);--border2:rgba(0,100,50,0.28);
+  --green:#006D3C;--green2:#005530;--green3:#41B93C;
+  --green-bg:#e1f5ee;--green-text:#0f6e56;
+  --amber-bg:#faeeda;--amber-text:#854f0b;
+  --red-bg:#fcebeb;--red-text:#a32d2d;
+  --blue-bg:#e6f1fb;--blue-text:#185fa5;
+  --gray-bg:#f1f0ec;--gray-text:#5f5e5a;
+  --radius:8px;--radius-lg:12px;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+body{font-family:var(--font);font-size:14px;color:var(--text);background:var(--bg3);min-height:100vh}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.topbar{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border2);background:var(--green);position:sticky;top:0;z-index:50}
+.logo{font-size:15px;font-weight:700;white-space:nowrap;color:#fff;letter-spacing:-.01em}
+.logo span{color:#41B93C}
+.tabs{display:flex;gap:2px;overflow-x:auto;flex:1;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:6px 13px;border-radius:var(--radius);cursor:pointer;white-space:nowrap;font-size:13px;color:rgba(255,255,255,0.75);border:none;background:none;transition:all .15s;font-family:var(--font);font-weight:500}
+.tab:hover{background:rgba(255,255,255,0.15);color:#fff}
+.tab.active{background:#fff;color:var(--green);font-weight:600}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.save-ind{font-size:11px;color:rgba(255,255,255,0.7);white-space:nowrap;transition:opacity .5s}
+.undo-btn{padding:4px 9px;border-radius:6px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);cursor:pointer;font-size:11px;color:#fff;font-family:var(--font);display:flex;align-items:center;gap:4px}
+.undo-btn:hover{background:rgba(255,255,255,0.25)}
+.undo-btn:disabled{opacity:0.35;cursor:default}
+.timer-bar{display:flex;align-items:center;gap:8px;padding:5px 16px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)}
+.timer-btn{padding:3px 10px;border-radius:5px;border:0.5px solid var(--border2);background:var(--card);cursor:pointer;font-size:11px;color:var(--text);font-family:var(--font)}
+.timer-btn:hover{background:var(--bg2)}
+#timer-display{font-weight:700;color:var(--green);min-width:44px;font-variant-numeric:tabular-nums}
+.content{flex:1;padding:16px;max-width:1040px;margin:0 auto;width:100%}
+.section{display:none}.section.active{display:block}
+.page-title{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--green)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px}
+.card-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
+.btn{padding:5px 11px;border-radius:6px;border:1px solid var(--border2);background:var(--card);cursor:pointer;font-size:12px;color:var(--text);display:inline-flex;align-items:center;gap:4px;font-family:var(--font);transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg2)}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-green:hover{background:var(--green2)}
+.btn-sm{padding:3px 8px;font-size:11px}
+.btn-icon{padding:4px 6px;border-radius:5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.metric{background:var(--bg2);border-radius:var(--radius);padding:12px;text-align:center;border:1px solid var(--border)}
+.metric-val{font-size:22px;font-weight:700;color:var(--green)}
+.metric-label{font-size:11px;color:var(--text2);margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:7px 8px;font-size:11px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border2);text-transform:uppercase;letter-spacing:.04em;background:var(--bg2)}
+td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg)}
+input[type=text],input[type=date],input[type=number],textarea,select{width:100%;padding:7px 9px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--card);color:var(--text);font-family:var(--font)}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 2px rgba(0,109,60,0.15)}
+textarea{resize:vertical;min-height:62px}
+.form-row{margin-bottom:10px}
+.form-row label{font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.badge-green{background:var(--green-bg);color:var(--green-text)}
+.badge-amber{background:var(--amber-bg);color:var(--amber-text)}
+.badge-red{background:var(--red-bg);color:var(--red-text)}
+.badge-gray{background:var(--gray-bg);color:var(--gray-text)}
+.badge-blue{background:var(--blue-bg);color:var(--blue-text)}
+.status-select{padding:2px 6px;border-radius:10px;font-size:11px;font-weight:700;border:1px solid var(--border2);cursor:pointer;font-family:var(--font);appearance:none;-webkit-appearance:none;padding-right:16px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;background-size:8px}
+.s-done{background:var(--green-bg);color:var(--green-text);border-color:var(--green-text)}
+.s-on-track{background:var(--green-bg);color:var(--green-text);border-color:var(--green-text)}
+.s-ongoing{background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-text)}
+.s-stuck{background:var(--red-bg);color:var(--red-text);border-color:var(--red-text)}
+.s-not-started{background:var(--gray-bg);color:var(--gray-text);border-color:var(--gray-text)}
+.issue-row{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:start;padding:9px 0;border-bottom:1px solid var(--border)}
+.issue-row:last-child{border-bottom:none}
+.issue-num{width:24px;height:24px;border-radius:50%;background:var(--green);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.rock-block{border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden}
+.rock-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);gap:8px;flex-wrap:wrap}
+.rock-title{font-size:13px;font-weight:600;color:var(--text)}
+.rock-body{padding:12px 14px}
+.ms-table{width:100%;border-collapse:collapse;font-size:12px}
+.ms-table th{background:var(--bg3);padding:5px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border2);color:var(--text2)}
+.ms-table td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.ms-table tr:last-child td{border-bottom:none}
+.ms-table tr:hover td{background:var(--bg)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,40,20,.5);z-index:200;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:var(--radius-lg);padding:22px;width:100%;max-width:580px;border:1px solid var(--border2);margin:auto}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:16px;color:var(--green)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
+.empty-state{text-align:center;padding:28px;color:var(--text3);font-size:13px}
+.divider{border:none;border-top:1px solid var(--border);margin:12px 0}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green-text);flex-shrink:0}
+.archive-toggle{font-size:11px;color:var(--text3);cursor:pointer;display:flex;align-items:center;gap:4px;margin:8px 0 0;padding:8px 0;border-top:1px dashed var(--border2)}
+.archive-toggle:hover{color:var(--green)}
+.archive-section{display:none;margin-top:8px;padding:10px;background:var(--bg);border-radius:var(--radius);border:1px dashed var(--border2)}
+.archive-section.open{display:block}
+.section-tabs{display:flex;gap:6px;margin-bottom:12px}
+.section-tab{padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border2);background:var(--card);color:var(--text2);font-family:var(--font);font-weight:500}
+.section-tab.active{background:var(--green);color:#fff;border-color:var(--green)}
+.sub-panel{display:none}.sub-panel.active{display:block}
+.fb-row{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:start;padding:10px 0;border-bottom:1px solid var(--border)}
+.fb-row:last-child{border-bottom:none}
+@media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr}.topbar{flex-wrap:wrap}.fb-row{grid-template-columns:1fr auto}}
+</style>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp, getApps, getApp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  window._fbReady = false;
+
+  window._fbInit = async function(cfg){
+    try{
+      const app = getApps().length ? getApp() : initializeApp(cfg);
+      const db  = getFirestore(app);
+      const ref = doc(db, 'atticus_l10', 'state');
+      window._db  = db;
+      window._doc = ref;
+      window._fbReady = true;
+
+      document.getElementById('fb-setup-banner').style.display = 'none';
+      document.getElementById('fb-status-bar').style.display  = 'flex';
+      showFbStatus('connected');
+      console.log('[FB] Connected to Firestore.');
+
+      // Check if Firestore has data — if yes, pull it (first load)
+      // If no, push our local data up
+      try{
+        const snap = await getDoc(ref);
+        if(snap.exists() && snap.data() && snap.data().payload){
+          const remote = JSON.parse(snap.data().payload);
+          // Only use Firestore data if it has more todos/rocks than our local
+          // This prevents blank defState from overwriting real data
+          var localTodos  = (window.S && window.S.todos)  ? window.S.todos.length  : 0;
+          var remoteTodos = remote.todos ? remote.todos.length : 0;
+          if(remoteTodos >= localTodos){
+            window.S = remote;
+            try{ localStorage.setItem('atticus_l10_v5', snap.data().payload); }catch(e){}
+            if(typeof renderAll === 'function') renderAll();
+            showFbStatus('synced');
+            updateSyncTime();
+            console.log('[FB] Loaded from Firestore on connect. Todos:', remoteTodos);
+          } else {
+            // Our local data is richer — push it up
+            console.log('[FB] Local data richer, pushing to Firestore.');
+            await window._fbSave(window.S);
+          }
+        } else {
+          // Nothing in Firestore — push our local data
+          console.log('[FB] No Firestore data, pushing local data up.');
+          await window._fbSave(window.S);
+        }
+      } catch(e){
+        console.error('[FB] Initial sync error:', e);
+      }
+
+      // Auto-pull every 30 seconds to catch teammate updates
+      window._fbPollInterval = setInterval(function(){
+        if(window._fbPull) window._fbPull();
+      }, 30000);
+
+    } catch(e){
+      console.error('[FB] Init error:', e);
+      showFbStatus('error: ' + e.message);
+      if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
+    }
+  };
+
+  // Save to Firestore
+  window._fbSave = async function(payload){
+    if(!window._db || !window._doc) return false;
+    try{
+      await setDoc(window._doc,
+        { payload: JSON.stringify(payload), ts: serverTimestamp() },
+        { merge: false }
+      );
+      console.log('[FB] Saved to Firestore.');
+      return true;
+    } catch(e){
+      console.error('[FB] Save error:', e);
+      showFbStatus('save error: ' + e.message);
+      return false;
+    }
+  };
+
+  // Pull latest from Firestore (for Sync Now button + auto-poll)
+  window._fbPull = async function(){
+    if(!window._db || !window._doc) return;
+    try{
+      const snap = await getDoc(window._doc);
+      if(snap.exists() && snap.data() && snap.data().payload){
+        const remote = JSON.parse(snap.data().payload);
+        window.S = remote;
+        try{ localStorage.setItem('atticus_l10_v5', snap.data().payload); }catch(e){}
+        if(typeof renderAll === 'function') renderAll();
+        showFbStatus('synced');
+        updateSyncTime();
+        console.log('[FB] Pull complete.');
+      }
+    } catch(e){
+      console.error('[FB] Pull error:', e);
+      showFbStatus('pull error: ' + e.message);
+    }
+  };
+</script>
+</head>
+<body>
+<div class="app">
+<div class="topbar">
+  <div class="logo"><span>Atticus</span> L10</div>
+  <div class="tabs" role="tablist">
+    <button class="tab active" onclick="switchTab('vision',this)">Team Vision</button>
+    <button class="tab" onclick="switchTab('scorecard',this)">Scorecard</button>
+    <button class="tab" onclick="switchTab('feedback',this)">Feedback</button>
+    <button class="tab" onclick="switchTab('rocks',this)">Rocks</button>
+    <button class="tab" onclick="switchTab('todos',this)">To-Do</button>
+    <button class="tab" onclick="switchTab('issues',this)">IDS Issues</button>
+    <button class="tab" onclick="switchTab('resolved',this)">Resolved</button>
+    <button class="tab" onclick="switchTab('rating',this)">Rating</button>
+    <button class="tab" onclick="switchTab('probing',this)">Probing Qs</button>
+    <button class="tab" onclick="switchTab('ai',this)">AI Initiatives</button>
+  </div>
+  <div class="topbar-right">
+    <button class="undo-btn" id="undo-btn" onclick="doUndo()" disabled title="Undo last change"><i class="ti ti-arrow-back-up"></i> Undo</button>
+    <span id="save-ind" class="save-ind">✓ Saved</span>
+  </div>
+</div>
+
+<!-- Firebase Setup Banner -->
+<div id="fb-setup-banner" style="background:#1a2e22;color:#fff;padding:10px 16px;font-size:13px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+  <i class="ti ti-database" style="color:#41B93C;font-size:16px"></i>
+  <span style="font-weight:600;color:#41B93C">Firebase not connected.</span>
+  <span style="color:rgba(255,255,255,0.75)">Paste your Firebase config to enable real-time sync across all team members.</span>
+  <button class="btn" onclick="openModal('modal-fb-setup')" style="background:#41B93C;color:#fff;border-color:#41B93C;padding:4px 12px;font-size:12px"><i class="ti ti-plug"></i> Connect Firebase</button>
+  <span style="color:rgba(255,255,255,0.5);font-size:11px">Using local storage until connected.</span>
+</div>
+
+<!-- Firebase Status Bar (shown after connection) -->
+<div id="fb-status-bar" style="display:none;background:var(--green);color:#fff;padding:4px 16px;font-size:11px;align-items:center;gap:10px">
+  <i class="ti ti-database" style="color:#41B93C"></i>
+  <span id="fb-status-text">Connected</span>
+  <span style="opacity:.5">·</span>
+  <span id="fb-last-sync" style="opacity:.7"></span>
+  <span id="fb-record-count" style="opacity:.7;font-size:10px"></span>
+  <span style="flex:1"></span>
+  <button class="btn btn-sm" onclick="manualSync()" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);font-size:11px" title="Force pull latest data from Firestore"><i class="ti ti-refresh"></i> Sync now</button>
+  <button class="btn btn-sm" onclick="openModal('modal-fb-setup')" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);font-size:11px">⚙ Config</button>
+  <button class="btn btn-sm" onclick="exportJSON()" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);font-size:11px"><i class="ti ti-download"></i> Export</button>
+</div>
+
+<!-- Loading overlay — shown while waiting for Firebase on page load -->
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,40,20,0.82);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.2);border-top-color:#41B93C;border-radius:50%;animation:spin 0.9s linear infinite"></div>
+  <div style="color:#fff;font-size:15px;font-weight:600">Loading latest data from Firebase...</div>
+  <div style="color:rgba(255,255,255,0.6);font-size:12px">Syncing with your team's Firestore database</div>
+  <button onclick="hideLoadingOverlay();try{var d=localStorage.getItem('atticus_l10_v5');if(d)S=JSON.parse(d);}catch(e){S=defState();}renderAll();showFbStatus('showing local data');" style="margin-top:8px;padding:8px 20px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;font-size:13px">Skip — show local data</button>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<div class="timer-bar">
+  <i class="ti ti-clock"></i> Timer: <span id="timer-display">0:00</span>
+  <button class="timer-btn" onclick="startTimer()">▶</button>
+  <button class="timer-btn" onclick="pauseTimer()">⏸</button>
+  <button class="timer-btn" onclick="resetTimer()">↺</button>
+  <span id="timer-alloc" style="color:var(--text3)"></span>
+</div>
+
+<div class="content">
+
+<!-- TEAM VISION -->
+<div id="tab-vision" class="section active">
+  <div class="page-title">Team Vision</div>
+  <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Click any vision statement to edit directly. Changes are saved automatically.</div>
+  <div id="vision-list"></div>
+  <button class="btn btn-green" onclick="addVision()" style="margin-top:4px"><i class="ti ti-plus"></i> Add Team / Department</button>
+</div>
+
+<!-- SCORECARD -->
+<div id="tab-scorecard" class="section">
+  <div class="page-title">Scorecard · 10 min</div>
+  <div class="section-tabs">
+    <button class="section-tab active" onclick="switchSubTab('sc','live',this)">Live KPIs</button>
+    <button class="section-tab" onclick="switchSubTab('sc','history',this)">Weekly Log History</button>
+  </div>
+  <div id="sc-live" class="sub-panel active">
+    <div id="sc-bu-list"></div>
+    <button class="btn btn-green" onclick="openModal('modal-add-bu')"><i class="ti ti-plus"></i> Add Business Unit</button>
+  </div>
+  <div id="sc-history" class="sub-panel">
+    <div class="card"><div class="card-header"><span class="card-title">Weekly KPI Log History</span></div>
+      <div style="overflow-x:auto"><table><thead id="sc-hist-head"></thead><tbody id="sc-hist-body"></tbody></table></div>
+      <div class="empty-state" id="sc-hist-empty">No weekly logs yet. Use "Log Week" from a KPI block.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ROCKS -->
+<div id="tab-rocks" class="section">
+  <div class="page-title">Rocks · 5 min · Q2 2026</div>
+  <button class="btn btn-green" onclick="openModal('modal-rock')" style="margin-bottom:12px"><i class="ti ti-plus"></i> Add Rock</button>
+  <div id="rocks-list"></div>
+  <div class="archive-toggle" onclick="toggleArchive('rocks-arc')"><i class="ti ti-archive"></i> Archived Rocks <i class="ti ti-chevron-down"></i></div>
+  <div id="rocks-arc" class="archive-section"><div id="rocks-arc-list"><div class="empty-state">No archived rocks.</div></div></div>
+</div>
+
+<!-- FEEDBACK -->
+<div id="tab-feedback" class="section">
+  <div class="page-title">Feedback · 5 min</div>
+  <div class="section-tabs">
+    <button class="section-tab active" onclick="switchSubTab('fb','active',this)">Active</button>
+    <button class="section-tab" onclick="switchSubTab('fb','archived',this)">Archived</button>
+  </div>
+  <div id="fb-active" class="sub-panel active">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Customer & Employee Feedback</span><button class="btn btn-green" onclick="openModal('modal-fb')"><i class="ti ti-plus"></i> Add</button></div>
+      <div id="fb-list"><div class="empty-state">No active feedback.</div></div>
+    </div>
+  </div>
+  <div id="fb-archived" class="sub-panel">
+    <div class="card"><div class="card-header"><span class="card-title">Archived Feedback</span></div>
+      <div id="fb-arc-list"><div class="empty-state">No archived feedback.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TO-DO -->
+<div id="tab-todos" class="section">
+  <div class="page-title">To-Do · 5 min</div>
+  <div class="section-tabs">
+    <button class="section-tab active" onclick="switchSubTab('td','active',this)">Active</button>
+    <button class="section-tab" onclick="switchSubTab('td','archived',this)">Archived</button>
+  </div>
+  <div id="td-active" class="sub-panel active">
+    <div class="card">
+      <div class="card-header"><span class="card-title">To-Do Items</span><button class="btn btn-green" onclick="openModal('modal-todo')"><i class="ti ti-plus"></i> Add</button></div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Area</th><th>Item</th><th>POC</th><th>Help from</th><th>Due</th><th>Status</th><th>Remarks</th><th></th></tr></thead>
+        <tbody id="todos-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div id="td-archived" class="sub-panel">
+    <div class="card"><div class="card-header"><span class="card-title">Archived To-Dos</span></div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Area</th><th>Item</th><th>POC</th><th>Status</th><th></th></tr></thead>
+        <tbody id="todos-arc-body"></tbody>
+      </table>
+      <div class="empty-state" id="td-arc-empty">No archived to-dos.</div>
+    </div></div>
+  </div>
+</div>
+
+<!-- IDS ISSUES -->
+<div id="tab-issues" class="section">
+  <div class="page-title">IDS Issues · 60 min</div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Step 1 — List & Prioritize</span><button class="btn btn-green" onclick="openModal('modal-issue')"><i class="ti ti-plus"></i> New Issue</button></div>
+    <div id="issues-list"><div class="empty-state">No open issues.</div></div>
+  </div>
+  <div class="card" id="ids-panel">
+    <div class="card-header"><span class="card-title">Step 2 — IDS Discussion</span></div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Round-robin: 5 Whys → Context → End in Mind → Now → AI Lens → Alternatives → Next Steps</p>
+    <div id="ids-detail"><div class="empty-state">Click "IDS" on an issue above.</div></div>
+  </div>
+  <div class="archive-toggle" onclick="toggleArchive('iss-arc')"><i class="ti ti-archive"></i> Archived Issues <i class="ti ti-chevron-down"></i></div>
+  <div id="iss-arc" class="archive-section"><div id="iss-arc-list"><div class="empty-state">No archived issues.</div></div></div>
+</div>
+
+<!-- RESOLVED -->
+<div id="tab-resolved" class="section">
+  <div class="page-title">Resolved Issues</div>
+  <div class="card">
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Source</th><th>Issue</th><th>Next Steps</th><th>POC</th><th>Actions</th></tr></thead>
+      <tbody id="resolved-body"></tbody>
+    </table>
+    <div class="empty-state" id="resolved-empty">No resolved issues yet.</div>
+  </div></div>
+</div>
+
+<!-- PROBING Qs -->
+<div id="tab-probing" class="section">
+  <div class="page-title">L10 Probing Questions</div>
+  <button class="btn btn-green" onclick="openModal('modal-pb-add')" style="margin-bottom:12px"><i class="ti ti-plus"></i> Add Question</button>
+  <div id="probing-list"></div>
+</div>
+
+<!-- RATING -->
+<div id="tab-rating" class="section">
+  <div class="page-title">Meeting Rating</div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Rate this meeting</span></div>
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:12px;margin-bottom:14px;border:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Rating Guide</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">
+        <div style="display:flex;gap:8px;margin-bottom:4px"><span style="color:var(--green);font-weight:700;min-width:18px">1.</span><span>How would you rate the participation of your team members?</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:4px"><span style="color:var(--green);font-weight:700;min-width:18px">2.</span><span>Participation is not based on giving the right answer, but on asking questions — right or wrong — that further the discussion.</span></div>
+        <div style="display:flex;gap:8px"><span style="color:var(--green);font-weight:700;min-width:18px">3.</span><span>What's that one question asked during the meeting that changed the discussion?</span></div>
+      </div>
+    </div>
+    <div id="rating-today"></div>
+    <hr class="divider">
+    <div class="grid2" style="margin-bottom:10px">
+      <div class="form-row"><label>Name</label>
+        <select id="rating-name-sel" onchange="document.getElementById('rating-name-custom').style.display=this.value==='__other__'?'block':'none'">
+          <option value="">— Select —</option>
+          <option>Jam</option><option>Josiah</option><option>Jorynn</option><option>MJ</option>
+          <option>Mond</option><option>Shanne</option><option>Ange</option>
+          <option value="__other__">Guest (specify below)</option>
+        </select>
+        <input type="text" id="rating-name-custom" placeholder="Guest name" style="display:none;margin-top:6px">
+      </div>
+      <div class="form-row"><label>Score (1–10)</label><input type="number" id="rating-score" min="1" max="10" placeholder="8"></div>
+    </div>
+    <div class="form-row" style="margin-bottom:10px"><label>Standout question (what changed the discussion?)</label><input type="text" id="rating-question" placeholder="Optional — this gets displayed in the summary"></div>
+    <button class="btn btn-green" onclick="addRating()"><i class="ti ti-check"></i> Submit</button>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Historical Ratings</span><button class="btn btn-sm" onclick="closeWeek()"><i class="ti ti-calendar-check"></i> Save this week</button></div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Week / Date</th><th>Jam</th><th>Josiah</th><th>Jorynn</th><th>MJ</th><th>Mond</th><th>Shanne</th><th>Ange</th><th>Guest</th><th>Avg</th></tr></thead>
+      <tbody id="rating-hist">
+        <tr><td>Feb 20</td><td>9</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><b>9.0</b></td></tr>
+        <tr><td>Feb 27</td><td>—</td><td>9</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><b>9.0</b></td></tr>
+        <tr><td>Mar 20</td><td>—</td><td>—</td><td>8</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><b>8.0</b></td></tr>
+        <tr><td>Apr 3</td><td>—</td><td>—</td><td>—</td><td>9</td><td>—</td><td>—</td><td>8</td><td>—</td><td>—</td><td><b>8.5</b></td></tr>
+        <tr><td>Apr 10</td><td>—</td><td>—</td><td>—</td><td>—</td><td>8</td><td>—</td><td>—</td><td>—</td><td>—</td><td><b>8.0</b></td></tr>
+        <tr><td>Apr 17</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>8</td><td>—</td><td>—</td><td>—</td><td><b>8.0</b></td></tr>
+        <tr><td>Apr 24</td><td>8</td><td>—</td><td>8</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><b>8.0</b></td></tr>
+        <tr><td>May 20</td><td>—</td><td>8</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><b>8.0</b></td></tr>
+        <tr><td>Jun 5</td><td>—</td><td>—</td><td>8</td><td>—</td><td>6</td><td>9</td><td>—</td><td>—</td><td>—</td><td><b>7.7</b></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- AI INITIATIVES -->
+<div id="tab-ai" class="section">
+  <div class="page-title">AI Initiatives · Ops Support</div>
+  <button class="btn btn-green" onclick="openModal('modal-ai')" style="margin-bottom:12px"><i class="ti ti-plus"></i> Add Initiative</button>
+  <div id="ai-list"></div>
+  <div class="archive-toggle" onclick="toggleArchive('ai-arc')"><i class="ti ti-archive"></i> Archived <i class="ti ti-chevron-down"></i></div>
+  <div id="ai-arc" class="archive-section"><div id="ai-arc-list"><div class="empty-state">No archived initiatives.</div></div></div>
+</div>
+
+</div></div>
+
+<!-- ========== MODALS ========== -->
+<div id="modal-add-bu" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-add-bu')">
+<div class="modal"><div class="modal-title">Add Business Unit KPI Block</div>
+  <div class="form-row"><label>BU Name</label><input type="text" id="bu-name" placeholder="e.g. Finance, Admin"></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-add-bu')">Cancel</button><button class="btn btn-green" onclick="addBU()">Add</button></div>
+</div></div>
+
+<div id="modal-add-kpi" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-add-kpi')">
+<div class="modal"><div class="modal-title">Add KPI</div>
+  <input type="hidden" id="kpi-target-bu">
+  <div class="form-row"><label>KPI Name</label><input type="text" id="new-kpi-name" placeholder="e.g. Collection Efficiency"></div>
+  <div class="form-row"><label>Target</label><input type="text" id="new-kpi-target" placeholder="e.g. ≥80%"></div>
+  <div class="form-row"><label>Description</label><input type="text" id="new-kpi-desc" placeholder="Brief description"></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-add-kpi')">Cancel</button><button class="btn btn-green" onclick="addKPI()">Add KPI</button></div>
+</div></div>
+
+<div id="modal-log-week" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-log-week')">
+<div class="modal"><div class="modal-title">Log Weekly KPI Data</div>
+  <div class="form-row"><label>Week Label</label><input type="text" id="log-week-label" placeholder="e.g. WK 26 — Jun 17"></div>
+  <div id="log-week-fields"></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-log-week')">Cancel</button><button class="btn btn-green" onclick="saveWeekLog()">Save Log</button></div>
+</div></div>
+
+<div id="modal-rock" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-rock')">
+<div class="modal"><div class="modal-title">Add Rock</div>
+  <div class="grid2">
+    <div class="form-row"><label>Department</label><select id="rock-dept"><option>Finance</option><option>Admin</option><option>Compliance</option><option>IT</option></select></div>
+    <div class="form-row"><label>Status</label><select id="rock-status"><option value="on-track">On track</option><option value="ongoing">Ongoing</option><option value="stuck">Stuck</option><option value="done">Done</option><option value="not-started">Not started</option></select></div>
+  </div>
+  <div class="form-row"><label>Rock Name</label><input type="text" id="rock-name" placeholder="Rock title"></div>
+  <div class="form-row"><label>Owner</label><input type="text" id="rock-owner" placeholder="Name"></div>
+  <div class="form-row"><label>Deadline</label><input type="date" id="rock-deadline"></div>
+  <div class="form-row"><label>Milestones (one per line — include ID, e.g. "M1: Define scope")</label><textarea id="rock-milestones" placeholder="M1: Define scope&#10;M2: Build model&#10;M3: UAT"></textarea></div>
+  <div class="form-row"><label>Notes</label><textarea id="rock-notes" placeholder="Current milestone, blockers..."></textarea></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-rock')">Cancel</button><button class="btn btn-green" onclick="addRock()">Save</button></div>
+</div></div>
+
+<div id="modal-rock-edit" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-rock-edit')">
+<div class="modal"><div class="modal-title">Edit Rock</div>
+  <input type="hidden" id="edit-rock-idx">
+  <div class="grid2">
+    <div class="form-row"><label>Department</label><select id="edit-rock-dept"><option>Finance</option><option>Admin</option><option>Compliance</option><option>IT</option></select></div>
+    <div class="form-row"><label>Status</label><select id="edit-rock-status"><option value="on-track">On track</option><option value="ongoing">Ongoing</option><option value="stuck">Stuck</option><option value="done">Done</option><option value="not-started">Not started</option></select></div>
+  </div>
+  <div class="form-row"><label>Rock Name</label><input type="text" id="edit-rock-name"></div>
+  <div class="form-row"><label>Owner</label><input type="text" id="edit-rock-owner"></div>
+  <div class="form-row"><label>Deadline</label><input type="date" id="edit-rock-deadline"></div>
+  <div class="form-row"><label>Milestones (one per line)</label><textarea id="edit-rock-milestones"></textarea></div>
+  <div class="form-row"><label>Notes</label><textarea id="edit-rock-notes"></textarea></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-rock-edit')">Cancel</button><button class="btn btn-green" onclick="saveRockEdit()">Save Changes</button></div>
+</div></div>
+
+<div id="modal-fb" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-fb')">
+<div class="modal"><div class="modal-title">Add Feedback</div>
+  <div class="grid3">
+    <div class="form-row"><label>Type</label><select id="fb-type"><option value="win">Win</option><option value="news">News</option><option value="challenge">Challenge</option></select></div>
+    <div class="form-row"><label>Issue?</label><select id="fb-issue"><option value="yes">Yes — Issue</option><option value="no">Not an issue</option><option value="neutral">Neutral</option></select></div>
+    <div class="form-row"><label>Status</label><select id="fb-status"><option value="open">Open</option><option value="done">Done</option></select></div>
+  </div>
+  <div class="form-row"><label>Source / Area</label><input type="text" id="fb-source" placeholder="Finance, Client, HR…"></div>
+  <div class="form-row"><label>Feedback</label><textarea id="fb-text" placeholder="Customer or employee feedback..."></textarea></div>
+  <div class="form-row"><label>Raised by</label><input type="text" id="fb-by" placeholder="Name"></div>
+  <div class="form-row"><label>Date</label><input type="date" id="fb-date"></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-fb')">Cancel</button><button class="btn btn-green" onclick="addFB()">Save</button></div>
+</div></div>
+
+<div id="modal-fb-edit" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-fb-edit')">
+<div class="modal"><div class="modal-title">Edit Feedback</div>
+  <input type="hidden" id="edit-fb-idx">
+  <div class="grid3">
+    <div class="form-row"><label>Type</label><select id="edit-fb-type"><option value="win">Win</option><option value="news">News</option><option value="challenge">Challenge</option></select></div>
+    <div class="form-row"><label>Issue?</label><select id="edit-fb-issue"><option value="yes">Yes — Issue</option><option value="no">Not an issue</option><option value="neutral">Neutral</option></select></div>
+    <div class="form-row"><label>Status</label><select id="edit-fb-status"><option value="open">Open</option><option value="done">Done</option></select></div>
+  </div>
+  <div class="form-row"><label>Source</label><input type="text" id="edit-fb-source"></div>
+  <div class="form-row"><label>Feedback</label><textarea id="edit-fb-text"></textarea></div>
+  <div class="form-row"><label>Raised by</label><input type="text" id="edit-fb-by"></div>
+  <div class="form-row"><label>Date</label><input type="date" id="edit-fb-date"></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-fb-edit')">Cancel</button><button class="btn btn-green" onclick="saveFBEdit()">Save</button></div>
+</div></div>
+
+<div id="modal-todo" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-todo')">
+<div class="modal"><div class="modal-title">Add To-Do</div>
+  <div class="grid2">
+    <div class="form-row"><label>Area</label><select id="td-area"><option>Finance</option><option>Admin</option><option>Compliance</option><option>All</option><option>IT</option></select></div>
+    <div class="form-row"><label>POC</label><input type="text" id="td-poc" placeholder="Name"></div>
+  </div>
+  <div class="form-row"><label>Item</label><textarea id="td-text" placeholder="What needs to be done?"></textarea></div>
+  <div class="grid2">
+    <div class="form-row"><label>Help from</label><input type="text" id="td-help" placeholder="Who do you need help from?"></div>
+    <div class="form-row"><label>Due date</label><input type="date" id="td-due"></div>
+  </div>
+  <div class="form-row"><label>Adjusted due date</label><input type="date" id="td-adj-due"></div>
+  <div class="form-row"><label>Remarks / Additional notes</label><textarea id="td-notes" placeholder="Additional context, constraints, links..."></textarea></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-todo')">Cancel</button><button class="btn btn-green" onclick="addTodo()">Save</button></div>
+</div></div>
+
+<div id="modal-td-edit" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-td-edit')">
+<div class="modal"><div class="modal-title">Edit To-Do</div>
+  <input type="hidden" id="edit-td-idx">
+  <div class="grid2">
+    <div class="form-row"><label>Area</label><select id="edit-td-area"><option>Finance</option><option>Admin</option><option>Compliance</option><option>All</option><option>IT</option></select></div>
+    <div class="form-row"><label>POC</label><input type="text" id="edit-td-poc"></div>
+  </div>
+  <div class="form-row"><label>Item</label><textarea id="edit-td-text"></textarea></div>
+  <div class="grid2">
+    <div class="form-row"><label>Help from</label><input type="text" id="edit-td-help"></div>
+    <div class="form-row"><label>Due date</label><input type="date" id="edit-td-due"></div>
+  </div>
+  <div class="form-row"><label>Adjusted due date</label><input type="date" id="edit-td-adj-due"></div>
+  <div class="form-row"><label>Remarks</label><textarea id="edit-td-notes"></textarea></div>
+  <div class="form-row"><label>Status</label><select id="edit-td-status"><option value="ongoing">Ongoing</option><option value="done">Done</option><option value="stuck">Stuck</option><option value="not-started">Not started</option></select></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-td-edit')">Cancel</button><button class="btn btn-green" onclick="saveTdEdit()">Save</button></div>
+</div></div>
+
+<div id="modal-issue" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-issue')">
+<div class="modal"><div class="modal-title">Add IDS Issue</div>
+  <div class="grid2">
+    <div class="form-row"><label>Source</label><input type="text" id="iss-source" placeholder="Finance, Admin…"></div>
+    <div class="form-row"><label>Raised by</label><input type="text" id="iss-by" placeholder="Name"></div>
+  </div>
+  <div class="form-row"><label>Issue</label><textarea id="iss-text" placeholder="Describe clearly..."></textarea></div>
+  <div class="form-row"><label>Priority</label><select id="iss-priority"><option>High</option><option>Medium</option><option>Low</option></select></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-issue')">Cancel</button><button class="btn btn-green" onclick="addIssue()">Save</button></div>
+</div></div>
+
+<div id="modal-pb-add" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-pb-add')">
+<div class="modal"><div class="modal-title">Add Probing Question</div>
+  <div class="form-row"><label>Category</label><input type="text" id="pb-cat" placeholder="e.g. Scorecard / Metrics"></div>
+  <div class="form-row"><label>Question</label><textarea id="pb-q" placeholder="Your question..."></textarea></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-pb-add')">Cancel</button><button class="btn btn-green" onclick="addProbing()">Save</button></div>
+</div></div>
+
+<div id="modal-ai" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-ai')">
+<div class="modal"><div class="modal-title">Add AI Initiative</div>
+  <div class="grid2">
+    <div class="form-row"><label>Department</label><select id="ai-dept"><option>FIN</option><option>ADM</option><option>COM</option><option>OPS</option><option>IT</option></select></div>
+    <div class="form-row"><label>Status</label><select id="ai-status"><option value="active">Active</option><option value="planning">Planning</option><option value="done">Done</option></select></div>
+  </div>
+  <div class="form-row"><label>Initiative Name</label><input type="text" id="ai-name"></div>
+  <div class="form-row"><label>Notes</label><textarea id="ai-notes"></textarea></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-ai')">Cancel</button><button class="btn btn-green" onclick="addAI()">Save</button></div>
+</div></div>
+
+<div id="modal-ai-edit" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-ai-edit')">
+<div class="modal"><div class="modal-title">Edit AI Initiative</div>
+  <input type="hidden" id="edit-ai-idx">
+  <div class="grid2">
+    <div class="form-row"><label>Department</label><select id="edit-ai-dept"><option>FIN</option><option>ADM</option><option>COM</option><option>OPS</option><option>IT</option></select></div>
+    <div class="form-row"><label>Status</label><select id="edit-ai-status"><option value="active">Active</option><option value="planning">Planning</option><option value="done">Done</option></select></div>
+  </div>
+  <div class="form-row"><label>Initiative Name</label><input type="text" id="edit-ai-name"></div>
+  <div class="form-row"><label>Notes</label><textarea id="edit-ai-notes"></textarea></div>
+  <div class="modal-footer"><button class="btn" onclick="closeModal('modal-ai-edit')">Cancel</button><button class="btn btn-green" onclick="saveAIEdit()">Save</button></div>
+</div></div>
+
+<script>
+// ============================================================
+//  STATE & UNDO
+// ============================================================
+const SK='atticus_l10_v5';
+const MEMBERS=['Jam','Josiah','Jorynn','MJ','Mond','Shanne','Ange','Guest'];
+let undoStack=[];
+
+function snapshot(){return JSON.parse(JSON.stringify(S));}
+function pushUndo(){
+  undoStack.push(snapshot());
+  if(undoStack.length>40)undoStack.shift();
+  document.getElementById('undo-btn').disabled=false;
+}
+function doUndo(){
+  if(!undoStack.length)return;
+  S=undoStack.pop();
+  if(!undoStack.length)document.getElementById('undo-btn').disabled=true;
+  save(true);renderAll();
+}
+
+function defState(){return{
+  bus:[
+    {name:'Finance',kpis:[
+      {n:'Collection Efficiency',t:'≥80%',d:'No. of invoices collected (incl. w/ confirmation/remittance) / total invoice for collection EOM',val:'',st:'not-started'},
+      {n:'Ave. Time to Invoice',t:'≤5 days',d:'Ave. days from trigger to invoice issuance',val:'',st:'not-started'},
+      {n:'Invoice Revisions',t:'<3/mo',d:'No. of revised invoices per month',val:'',st:'not-started'},
+      {n:'Cash Flow Ratio',t:'<100%',d:'Monthly Inflow / Outflow EOM',val:'',st:'not-started'},
+      {n:'Month-End Closing',t:'D+5',d:'5 days, 90% quarterly',val:'',st:'not-started'},
+      {n:'BS Review',t:'≥90%',d:'D+5 after endorsement from Billing team',val:'',st:'not-started'},
+      {n:'Post Billing Audit',t:'WD+3',d:'After max 7-day close',val:'',st:'not-started'},
+      {n:'Monthly BR Workfile',t:'≤3 days',d:'Business review workfile prep time',val:'',st:'not-started'},
+      {n:'OPEX/GM Ratio (OER)',t:'On target',d:'Monthly OPEX / GM vs budget',val:'',st:'not-started'}
+    ]},
+    {name:'Admin',kpis:[
+      {n:'Budget Utilization',t:'On track',d:'(Actual Cost ÷ Approved Budget) × 100',val:'',st:'not-started'},
+      {n:'PO Cycle Time (IT worktools)',t:'7–10 days',d:'Repeat orders turnaround',val:'',st:'not-started'},
+      {n:'Savings vs SRP',t:'≥15%',d:'Final vendor quote vs budgeted amount',val:'',st:'not-started'},
+      {n:'Admin Task SLA',t:'≤5 days',d:'End-to-end (excl. 3rd party)',val:'',st:'not-started'},
+      {n:'Policy Compliance',t:'0 incidents',d:'No. of documented incidents',val:'',st:'not-started'}
+    ]},
+    {name:'Compliance',kpis:[
+      {n:'Repeat Incident Rate',t:'<5–10%',d:'Repeat incidents / total incidents',val:'',st:'not-started'},
+      {n:'Client Compliance Escalations',t:'0–2/mo',d:'Client compliance-related escalations',val:'',st:'not-started'}
+    ]}
+  ],
+  weekLogs:[],
+  rocks:[
+    {dept:'Finance',name:'Rock 1 · Predictive Client & HC Forecasting Engine',owner:'Mond',deadline:'2026-06-30',status:'on-track',notes:'Milestone 4 done.',archived:false,milestones:[
+      {id:'M1',text:'Define Forecasting Inputs & Data Sources',responsible:'Finance',accountable:'Mond',deadline:'2026-01-19',status:'done',notes:''},
+      {id:'1.1',text:'Establish forecasting probability criteria (High/Mid/Low)',responsible:'Finance',accountable:'Mond',deadline:'2026-01-19',status:'done',notes:''},
+      {id:'1.2',text:'Finalize client, sales, and HC data fields',responsible:'Finance',accountable:'Mond',deadline:'2026-01-19',status:'done',notes:''},
+      {id:'1.3',text:'Align with Sales, Ops, Finance on definitions and assign POCs',responsible:'Finance',accountable:'Mond',deadline:'2026-02-02',status:'done',notes:''},
+      {id:'M2',text:'Build Forecasting Model & Template',responsible:'Finance',accountable:'Mond',deadline:'2026-01-30',status:'ongoing',notes:''},
+      {id:'2.1',text:'Create standardized monthly/weekly forecasting template',responsible:'Finance',accountable:'Mond',deadline:'2026-01-30',status:'ongoing',notes:''},
+      {id:'M3',text:'Validation & Scenario Testing',responsible:'Finance',accountable:'Mond',deadline:'2026-02-09',status:'ongoing',notes:''},
+      {id:'3.1',text:'Stress test with 3 scenarios (high, mid, low)',responsible:'Finance',accountable:'Mond',deadline:'',status:'not-started',notes:''},
+      {id:'3.2',text:'Identify risks, constraints, and operational bottlenecks',responsible:'Finance',accountable:'Mond',deadline:'',status:'not-started',notes:''},
+      {id:'M4',text:'HubSpot to Finance Dashboard Integration Assessment',responsible:'Finance',accountable:'Mond',deadline:'2026-03-20',status:'done',notes:''}
+    ]},
+    {dept:'Finance',name:'Rock 2 · Client Profitability Reporting',owner:'MJ',deadline:'2026-06-25',status:'ongoing',notes:'M6 ongoing (adj. Jun 25).',archived:false,milestones:[
+      {id:'M1',text:'Define Client Profitability Framework & Decision Use',responsible:'Finance',accountable:'MJ',deadline:'2026-02-13',status:'done',notes:''},
+      {id:'M2',text:'Clean and Structure Source Data (Xero)',responsible:'Finance',accountable:'MJ',deadline:'2026-02-27',status:'done',notes:''},
+      {id:'M3',text:'Build Profitability Calculation Model',responsible:'Finance',accountable:'MJ',deadline:'2026-04-17',status:'done',notes:''},
+      {id:'M4',text:'Automate Reporting & Dashboard Creation',responsible:'Finance',accountable:'MJ',deadline:'2026-04-17',status:'done',notes:''},
+      {id:'M5',text:'Validate, Stress Test & Refine Insights',responsible:'Finance',accountable:'MJ',deadline:'2026-04-24',status:'done',notes:''},
+      {id:'M6',text:'Client Profitability Reporting Live & Operational',responsible:'Finance',accountable:'MJ',deadline:'2026-06-25',status:'ongoing',notes:'Adj. Jun 25'}
+    ]},
+    {dept:'Finance',name:'Rock 3 · Web-Based Quote Calculator (Project QuoteRight)',owner:'MJ/Marlou',deadline:'2026-07-18',status:'ongoing',notes:'M3.3 ongoing, M4–5 in progress.',archived:false,milestones:[
+      {id:'M1',text:'Discovery & Planning',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-03-28',status:'done',notes:''},
+      {id:'M2',text:'Design Completed',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-04-18',status:'done',notes:''},
+      {id:'M3',text:'Core Logic — M3.1–3.2 Done, M3.3 Ongoing',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-05-16',status:'ongoing',notes:''},
+      {id:'M4',text:'Integration & Optimization',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-06-13',status:'ongoing',notes:''},
+      {id:'M5',text:'Final Testing & Revisions',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-07-04',status:'ongoing',notes:''},
+      {id:'M6',text:'Deployment & Handover',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-07-18',status:'not-started',notes:''}
+    ]},
+    {dept:'Finance',name:'Rock 4 · AI-Powered Balance Sheet Reconciliation',owner:'MJ',deadline:'2026-06-30',status:'ongoing',notes:'M4 UAT ongoing, M5 not yet started.',archived:false,milestones:[
+      {id:'M1',text:'Define Scope & Standardize Data',responsible:'Finance',accountable:'MJ',deadline:'2026-03-07',status:'done',notes:''},
+      {id:'M2',text:'Build AI Prompt & Matching Logic',responsible:'Finance',accountable:'MJ',deadline:'2026-04-04',status:'done',notes:''},
+      {id:'M3',text:'Automate Reconciliation Workflow',responsible:'Finance',accountable:'MJ',deadline:'2026-05-02',status:'done',notes:''},
+      {id:'M4',text:'UAT & Parallel Testing',responsible:'Finance',accountable:'MJ',deadline:'2026-05-30',status:'ongoing',notes:''},
+      {id:'M5',text:'Live Implementation & Monitoring',responsible:'Finance',accountable:'MJ',deadline:'2026-06-30',status:'not-started',notes:''}
+    ]},
+    {dept:'Admin',name:'Rock 1 · Automated SLA Monitoring & Ticketing (Freshservice)',owner:'Shanne',deadline:'2026-06-30',status:'ongoing',notes:'M4 testing ongoing, M5 not started.',archived:false,milestones:[
+      {id:'M1',text:'Testing of Freshservice',responsible:'Admin',accountable:'Shanne',deadline:'2026-02-28',status:'done',notes:''},
+      {id:'M2',text:'Set Rules & Logic',responsible:'Admin',accountable:'Shanne',deadline:'2026-03-28',status:'done',notes:''},
+      {id:'M3',text:'Build Request Portal',responsible:'Admin',accountable:'Shanne',deadline:'2026-04-25',status:'done',notes:''},
+      {id:'M3b',text:'Automate the Work',responsible:'Admin',accountable:'Shanne',deadline:'2026-05-23',status:'done',notes:''},
+      {id:'M4',text:'Test & Dashboard',responsible:'Admin',accountable:'Shanne',deadline:'2026-06-20',status:'ongoing',notes:''},
+      {id:'M5',text:'Launch & Training',responsible:'Admin',accountable:'Shanne',deadline:'2026-06-30',status:'not-started',notes:''}
+    ]},
+    {dept:'Admin',name:'Rock 2 · EasyPOS Acquisition & Integration (Admin/Compliance)',owner:'Mond',deadline:'2026-09-30',status:'stuck',notes:'M2.2 stuck — Bryce & Alex commitment pending.',archived:false,milestones:[
+      {id:'M1',text:'Agreement with EasyPOS & Oolio',responsible:'Admin/Compliance',accountable:'Mond',deadline:'2026-01-31',status:'done',notes:''},
+      {id:'M2',text:'Legal papers via Acube',responsible:'Admin/Compliance',accountable:'Mond',deadline:'2026-03-31',status:'done',notes:''},
+      {id:'M2.1',text:'Submission to sellers',responsible:'Admin/Compliance',accountable:'Mond',deadline:'2026-04-15',status:'done',notes:''},
+      {id:'M2.2',text:'Signing & notarization',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'stuck',notes:'Bryce & Alex commitment pending'},
+      {id:'M3',text:'BIR eCAR submission',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'not-started',notes:''},
+      {id:'M4',text:'SBMA submission',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'not-started',notes:''},
+      {id:'M5',text:'Atticus-EasyPOS merger',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'not-started',notes:''},
+      {id:'M6',text:'SBMA sublease assignment',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'ongoing',notes:''}
+    ]},
+    {dept:'Compliance',name:'Rock 1 · Compliance Charter & Setup',owner:'Jam',deadline:'2026-06-30',status:'ongoing',notes:'M1.1 done, M2 not started.',archived:false,milestones:[
+      {id:'M1',text:'Organize the Basics (Charter & Scope)',responsible:'Compliance',accountable:'Jam',deadline:'2026-03-31',status:'ongoing',notes:'Charter Done, Scope Done'},
+      {id:'M2',text:'Internal Health Check (Compliance Audit)',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-30',status:'not-started',notes:''},
+      {id:'M3',text:'Build Risk Registry Template',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-30',status:'ongoing',notes:''}
+    ]},
+    {dept:'Compliance',name:'Rock 2 · Strategic Risk Management Initiative',owner:'Jam',deadline:'2026-06-30',status:'ongoing',notes:'Risk repo built, M3–4 not started.',archived:false,milestones:[
+      {id:'M1',text:'Compile Issues from All BUs',responsible:'Compliance',accountable:'Jam',deadline:'2026-04-30',status:'ongoing',notes:''},
+      {id:'M2',text:'Build Risk Repository',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-15',status:'done',notes:''},
+      {id:'M3',text:'Compliance Insights & Review',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-15',status:'not-started',notes:''},
+      {id:'M4',text:'Release & Execution Handoff',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-25',status:'not-started',notes:''},
+      {id:'M5',text:'Release to BUs',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-30',status:'not-started',notes:''}
+    ]},
+    {dept:'Compliance',name:'Rock 3 · Client Contract Integrity & Audit',owner:'Jam',deadline:'2026-06-30',status:'ongoing',notes:'M1–2 ongoing, M3–5 not started.',archived:false,milestones:[
+      {id:'M1',text:'Inventory & Completeness Check',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-15',status:'ongoing',notes:''},
+      {id:'M2',text:'Document & Clause Review',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-30',status:'ongoing',notes:''},
+      {id:'M3',text:'Risk Assessment Per Client',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-13',status:'not-started',notes:''},
+      {id:'M4',text:'Finalize findings & endorse to leadership',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-20',status:'not-started',notes:''},
+      {id:'M5',text:'Final completion report',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-30',status:'not-started',notes:''}
+    ]}
+  ],
+  vision:[
+    {team:"Finance and Admin",statement:"To serve as a trusted strategic partner driving sustainable growth by ensuring financial integrity, maximizing operational efficiency, and delivering actionable insights that enable sound business decisions and reinforce our position as a leading offshore managed services provider."},
+    {team:"IT",statement:"To become a trusted IT Business Partner — an elite team that not only supports, but advises, innovates, and collaborates as strategic consultants across the organization."},
+    {team:"Operations Support (Finance & Admin, IT & Compliance)",statement:"To be a trusted strategic partner that strengthens the organization's foundation by ensuring financial integrity, operational & governance excellence, and technology innovation — enabling scalable, data-driven, and sustainable growth as a leading offshore managed services provider."}
+  ],
+  feedback:[
+    {type:'news',issue:'no',source:'Finance',text:"Business Review AI Decks appreciated by Miggy & Lester in last week's session",by:'Mond',date:'2026-02-25',status:'open',archived:false},
+    {type:'news',issue:'no',source:'Admin',text:'US Embassy PIP Reaccreditation Approved',by:'Shanne',date:'2026-06-02',status:'open',archived:false},
+    {type:'news',issue:'no',source:'All',text:"Positive feedback from Jef — Finance & Admin L10 is well-structured, team navigates without prompting",by:'Mond',date:'2026-04-28',status:'open',archived:false}
+  ],
+  todos:[
+    {area:'Finance',text:'Client payment guide',poc:'Jam',help:'Josiah, Marlou',due:'',adjDue:'',notes:'',status:'ongoing',archived:false},
+    {area:'Finance',text:'Assess old outstanding invoices for write-off (90 days+)',poc:'MJ',help:'Josiah, Marlou',due:'',adjDue:'',notes:'90 days and up',status:'ongoing',archived:false},
+    {area:'Finance',text:'Credit Card payment (Stripe/Payoneer) + MSA terms review',poc:'Jorynn/Jam',help:'Josiah',due:'2026-06-24',adjDue:'',notes:'1. Step-by-step guide in Stripe 2. Revisit MSA terms for consent to auto-charge',status:'ongoing',archived:false},
+    {area:'Finance',text:'Converge for Bepoz — outstanding balance (billable or internal?)',poc:'',help:'',due:'',adjDue:'',notes:'',status:'ongoing',archived:false},
+    {area:'Finance',text:'Set up discussion with CSM/BP: Client Profitability Reporting (Rock 2)',poc:'MJ',help:'',due:'',adjDue:'',notes:'',status:'ongoing',archived:false},
+    {area:'Finance',text:'Discuss with HR re: SSS, Reimbursements, Final Pay, ER Share Data',poc:'Jorynn',help:'',due:'',adjDue:'',notes:'',status:'ongoing',archived:false},
+    {area:'Admin',text:'Business Permit Renewals — Strata & St. Francis',poc:'Shanne/Angelica',help:'Sharmaine, Tere, Dona',due:'2026-06-17',adjDue:'',notes:'June 17 — SFS Branch BP Ongoing. SFS Fire Cert Ongoing. Atticus Main Fire Cert Ongoing.',status:'ongoing',archived:false},
+    {area:'Admin',text:'Anvaya — create agreement & inventory for internal guests',poc:'Shanne',help:'Mitzi and Janey',due:'2026-06-05',adjDue:'',notes:'Inventory and documentation of existing furniture and other items.',status:'ongoing',archived:false},
+    {area:'Admin',text:'Bepoz Rebate Application (Eastern)',poc:'Shanne',help:'Sam',due:'',adjDue:'',notes:'Coordinate with Sam who should process this.',status:'ongoing',archived:false},
+    {area:'Admin',text:'Freshservice demo with Admin team before rollout',poc:'Shanne',help:'',due:'',adjDue:'',notes:'Demo before roll out.',status:'ongoing',archived:false},
+    {area:'All',text:'Training Feedback Form (Ms. Jef request)',poc:'All',help:'',due:'2026-06-05',adjDue:'',notes:'https://docs.google.com/forms/d/...',status:'ongoing',archived:false},
+    {area:'All',text:'Revisit RACI Chart',poc:'',help:'',due:'',adjDue:'',notes:'',status:'ongoing',archived:false},
+    {area:'All',text:'AI Process Initiative — individual assignments',poc:'Mond',help:'All',due:'',adjDue:'',notes:'',status:'ongoing',archived:false}
+  ],
+  issues:[],
+  resolved:[
+    {source:'Finance',text:'Contractor Payroll subject for EWT (FYRojas)',nextSteps:'Alignment with FYRojas; completeness of invoices; IT to list non-submitters',poc:'MJ'},
+    {source:'Finance',text:'S10 Jan financials operating at loss',nextSteps:'Flash reports; billing validation for Aprio; include Finance in L10',poc:'MJ/Marlou'},
+    {source:'Finance',text:'Invoice validation/verification prior to payment (PACFIN duplicate)',nextSteps:'Proactive validation with IT/Mari; require DR before payment',poc:'MJ/Jorynn'},
+    {source:'Admin',text:'EasyPOS acquisition — no execution after 3 months',nextSteps:'Requirements checklist; special-case workflow; compliance review',poc:'Shanne/Jam'},
+    {source:'Admin',text:'PLDT & Cignal for TGI — fiber not available',nextSteps:'IT coordination; Cignal alternative via Demo Box',poc:'Shanne/Kevin'},
+    {source:'Finance',text:"Lester's CC full — HubSpot payment failed",nextSteps:'All annual subs via bank transfer; Finance owns CC monitoring',poc:'Jorynn'},
+    {source:'Finance',text:'One Degree FX rate at 51 — 6-month recon requested',nextSteps:'FX SOP alignment with CS; 6-mo billing review prepared',poc:'Marlou/MJ'},
+    {source:'Finance',text:'Back and forth with HR re: Special Runs — weekly errors',nextSteps:'Compile all issues; touchpoint with HR on process & accountability',poc:'MJ'},
+    {source:'Compliance',text:'S10 contractors using alias in client-facing comms',nextSteps:'Create guideline; set meeting with Ria',poc:'Jam'},
+    {source:'Finance',text:'Exempt employees (Solar, Cloud Culture, Moss Adams) billed HP/ND',nextSteps:'Check historical data; update Quocal; add to post-audit SOP',poc:'Josiah'},
+    {source:'S10',text:'Auto trial-to-subscription billing infrastructure',nextSteps:'Stripe/Payoneer setup; MSA consent-to-charge clause review',poc:'Jorynn/Jam'},
+    {source:'Admin',text:'Issue with Eastern Telecom Internet — Bepoz',nextSteps:'IT to raise ticket to ETPI; reiterate service inclusion to Sam',poc:'Shanne/Mond'},
+    {source:'Finance',text:'Jackson James — billing/payment alignment',nextSteps:'Coordinate with HRBP/CS on timesheet portal; move to post-billing',poc:'Josiah'}
+  ],
+  probing:[
+    {cat:'Scorecard / Metrics',q:"Are our numbers truly accurate and consistent (single source of truth), or are teams keeping side spreadsheets?"},
+    {cat:'Scorecard / Metrics',q:"Which KPIs are trending downward even if still above target?"},
+    {cat:'Scorecard / Metrics',q:"Are we relying too much on lagging metrics (revenue, CSAT) and not enough on leading indicators?"},
+    {cat:'Scorecard / Metrics',q:"Where are we seeing variability or outliers in data we've dismissed as one-offs?"},
+    {cat:'Scorecard / Metrics',q:'Are any metrics "green" on the surface but masking hidden issues?'},
+    {cat:'Client & Service',q:"What are clients not saying directly but hinting at in tone, requests, or behavior?"},
+    {cat:'Client & Service',q:"Have any small complaints or repeated requests been brushed off as minor but signal a bigger issue?"},
+    {cat:'Client & Service',q:"Are we listening enough to client feedback loops (CSAT, NPS, ticket trends)?"},
+    {cat:'Client & Service',q:"Are we delivering what clients need today, but missing what they'll need in 6–12 months?"},
+    {cat:'Client & Service',q:"What's the biggest client frustration we know about but haven't solved yet?"},
+    {cat:'IDS Filter',q:"Does this issue affect more than one person, team, or department?"},
+    {cat:'IDS Filter',q:"If unresolved, will it have a client-facing impact?"},
+    {cat:'IDS Filter',q:"How does this issue tie back to our 3-year picture / quarterly rocks?"},
+    {cat:'IDS Filter',q:"Is it relevant — what's the instance, frequency, quantity? Can a solved issue be a headline instead?"}
+  ],
+  ratings:[],
+  ai:[
+    {dept:'ADM',name:'Improved L10 Board',status:'active',notes:'',archived:false},
+    {dept:'FIN',name:'Collection Weekly Monitoring Report',status:'active',notes:'',archived:false},
+    {dept:'FIN',name:'Balance Sheet Reconciliation',status:'active',notes:'',archived:false},
+    {dept:'FIN',name:'Collection Rate / OER and Cash KPIs',status:'active',notes:'',archived:false},
+    {dept:'COM',name:'Compliance Calendar Dashboard',status:'planning',notes:'',archived:false},
+    {dept:'OPS',name:'RACI and Org Chart',status:'planning',notes:'',archived:false},
+    {dept:'FIN',name:'FX Quarterly Rates Review',status:'active',notes:'',archived:false}
+  ]
+};}
+
+let S=null;
+const ALLOCS={vision:'—',scorecard:'10 min',rocks:'5 min',feedback:'5 min',todos:'5 min',issues:'60 min',resolved:'—',probing:'—',rating:'5 min',ai:'—'};
+let timerInt=null,timerSecs=0,timerRunning=false;
+
+function startTimer(){if(timerRunning)return;timerRunning=true;timerInt=setInterval(()=>{timerSecs++;let m=Math.floor(timerSecs/60),s=timerSecs%60;document.getElementById('timer-display').textContent=m+':'+(s<10?'0':'')+s;},1000);}
+function pauseTimer(){clearInterval(timerInt);timerRunning=false;}
+function resetTimer(){clearInterval(timerInt);timerRunning=false;timerSecs=0;document.getElementById('timer-display').textContent='0:00';}
+
+function switchTab(name,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('timer-alloc').textContent=ALLOCS[name]?'· '+ALLOCS[name]:'';
+  resetTimer();
+}
+function switchSubTab(prefix,name,btn){
+  btn.closest('.section-tabs').querySelectorAll('.section-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('[id^="'+prefix+'-"]').forEach(p=>{if(p.classList.contains('sub-panel'))p.classList.remove('active');});
+  const el=document.getElementById(prefix+'-'+name);if(el)el.classList.add('active');
+}
+function toggleArchive(id){document.getElementById(id).classList.toggle('open');}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function save(silent){
+  // Always save to localStorage first — this is what you see on refresh
+  try{ localStorage.setItem(SK, JSON.stringify(S)); }catch(e){}
+  // Also push to Firestore so teammates can see it
+  if(window._fbReady && window._fbSave){
+    window._fbSave(S).then(function(){
+      if(!silent) showSaved();
+    }).catch(function(){
+      if(!silent) showSaved();
+    });
+  } else {
+    if(!silent) showSaved();
+  }
+}
+function load(){
+  // Step 1: Load from localStorage immediately — fast, reliable, YOUR data
+  try{
+    var d = localStorage.getItem(SK);
+    window.S = d ? JSON.parse(d) : defState();
+  } catch(e){
+    window.S = defState();
+  }
+  renderAll();
+
+  // Step 2: Connect to Firebase in background (if config saved)
+  try{
+    var savedCfg = localStorage.getItem('atticus_fb_cfg');
+    if(savedCfg){
+      var cfg = JSON.parse(savedCfg);
+      var tries = 0;
+      var tryConnect = function(){
+        tries++;
+        if(window._fbInit){
+          window._fbInit(cfg).catch(function(e){
+            console.error('[FB] Auto-connect error:', e);
+          });
+        } else if(tries < 15){
+          setTimeout(tryConnect, 600);
+        } else {
+          console.warn('[FB] SDK did not load after 15 tries.');
+        }
+      };
+      setTimeout(tryConnect, 400);
+    }
+  } catch(e){
+    console.error('[FB] Load config error:', e);
+  }
+}
+function showLoadingOverlay(show){
+  var el = document.getElementById('loading-overlay');
+  if(el) el.style.display = show ? 'flex' : 'none';
+}
+function hideLoadingOverlay(){
+  showLoadingOverlay(false);
+  if(window._fbLoadTimeout){ clearTimeout(window._fbLoadTimeout); window._fbLoadTimeout=null; }
+}
+function showSaved(){const el=document.getElementById('save-ind');el.textContent='✓ Saved';el.style.opacity='1';setTimeout(()=>{el.style.opacity='0.5';},2000);}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+const ST={done:'Done','on-track':'On Track',ongoing:'Ongoing',stuck:'Stuck','not-started':'Not started'};
+const SC={'done':'s-done','on-track':'s-on-track','ongoing':'s-ongoing','stuck':'s-stuck','not-started':'s-not-started'};
+const DOT={'done':'#1D9E75','on-track':'#1D9E75','ongoing':'#EF9F27','stuck':'#E24B4A','not-started':'#aaa'};
+
+function stSel(val,onChange,small){
+  const sz=small?'font-size:10px;padding:1px 18px 1px 4px':'';
+  // Use data-onchange attribute to avoid quote conflicts; handler applied via applyStSel
+  const opts=Object.entries(ST).map(([k,v])=>`<option value="${k}"${val===k?' selected':''}>${v}</option>`).join('');
+  return`<select class="status-select ${SC[val]||'s-not-started'}" style="${sz}" onchange="handleStSel(this,'${onChange.replace(/'/g,"\'")}')">${opts}</select>`;
+}
+function handleStSel(el, onChangeFn){
+  // Update visual class immediately
+  el.className='status-select '+( SC[el.value]||'s-not-started');
+  // Execute the logic string
+  try{ (new Function('el', onChangeFn.replace(/this\.value/g,"el.value").replace(/this/g,"el")))(el); }
+  catch(e){ console.error('stSel handler error',e); }
+}
+
+function renderAll(){
+  if(!window.S) return; // guard — don't render with null state
+  renderVision();renderSC();renderRocks();renderFB();
+  renderTodos();renderIssues();renderResolved();renderProbing();renderRatings();renderAI();
+  // Show record counts so you can verify data is loading
+  var el = document.getElementById('fb-record-count');
+  if(el && window.S){
+    var td = (window.S.todos||[]).filter(function(t){return !t.archived;}).length;
+    var iss = (window.S.issues||[]).filter(function(i){return !i.archived&&!i.resolved;}).length;
+    var rk = (window.S.rocks||[]).length;
+    el.textContent = ' · ' + td + ' to-dos · ' + iss + ' issues · ' + rk + ' rocks';
+  }
+}
+
+// ============================================================
+//  TEAM VISION
+// ============================================================
+function renderVision(){
+  if(!S.vision)S.vision=[];
+  var el=document.getElementById('vision-list');
+  if(!el)return;
+  if(!S.vision.length){el.innerHTML='<div class="empty-state">No vision statements yet. Add one below.</div>';return;}
+  var html='';
+  S.vision.forEach(function(v,i){
+    html+='<div class="card" style="margin-bottom:10px">';
+    html+='<div class="card-header">';
+    html+='<span contenteditable="true" onblur="pushUndo();S.vision['+i+'].team=this.textContent.trim();save()" style="font-size:13px;font-weight:700;color:var(--green);outline:none;min-width:80px">'+esc(v.team)+'</span>';
+    html+='<button class="btn btn-icon btn-sm" onclick="delVision('+i+')" style="color:var(--red-text)"><i class="ti ti-trash"></i></button>';
+    html+='</div>';
+    html+='<div contenteditable="true" onblur="pushUndo();S.vision['+i+'].statement=this.textContent.trim();save()" style="font-size:13px;line-height:1.75;color:var(--text2);border-left:3px solid var(--green);padding-left:12px;outline:none;min-height:40px">'+esc(v.statement)+'</div>';
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+function delVision(i){if(!confirm('Remove this vision statement?'))return;pushUndo();S.vision.splice(i,1);save();renderVision();}
+function addVision(){
+  var team=prompt('Team / Department name:','');
+  if(!team)return;
+  pushUndo();
+  if(!S.vision)S.vision=[];
+  S.vision.push({team:team,statement:'Click to add vision statement...'});
+  save();renderVision();
+}
+
+// ============================================================
+//  SCORECARD — no status column, just value + log history
+// ============================================================
+function renderSC(){
+  const c=document.getElementById('sc-bu-list');
+  c.innerHTML=S.bus.map((bu,bi)=>`
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title" contenteditable="true" onblur="pushUndo();S.bus[${bi}].name=this.textContent.trim();save()">${esc(bu.name)}</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="openAddKpi(${bi})"><i class="ti ti-plus"></i> KPI</button>
+        <button class="btn btn-sm btn-green" onclick="openLogWeek(${bi})"><i class="ti ti-calendar"></i> Log week</button>
+        <button class="btn btn-sm" onclick="pushUndo();S.bus.splice(${bi},1);save();renderSC()" style="color:var(--red-text)"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>KPI</th><th>Target</th><th>Description</th><th>This Week</th></tr></thead>
+      <tbody>${bu.kpis.map((k,ki)=>`<tr>
+        <td contenteditable="true" onblur="pushUndo();S.bus[${bi}].kpis[${ki}].n=this.textContent.trim();save()" style="font-weight:700">${esc(k.n)}</td>
+        <td contenteditable="true" onblur="pushUndo();S.bus[${bi}].kpis[${ki}].t=this.textContent.trim();save()" style="white-space:nowrap">${esc(k.t)}</td>
+        <td contenteditable="true" onblur="pushUndo();S.bus[${bi}].kpis[${ki}].d=this.textContent.trim();save()">${esc(k.d)}</td>
+        <td contenteditable="true" onblur="pushUndo();S.bus[${bi}].kpis[${ki}].val=this.textContent.trim();save()" style="min-width:90px;color:var(--green);font-weight:500">${esc(k.val||'—')}</td>
+        <td style="width:32px"><button class="btn btn-icon btn-sm" onclick="pushUndo();S.bus[${bi}].kpis.splice(${ki},1);save();renderSC()" title="Remove"><i class="ti ti-x"></i></button></td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`).join('');
+  renderSCHistory();
+}
+function addBU(){const n=document.getElementById('bu-name').value.trim();if(!n)return;pushUndo();S.bus.push({name:n,kpis:[]});save();renderSC();document.getElementById('bu-name').value='';closeModal('modal-add-bu');}
+function openAddKpi(bi){document.getElementById('kpi-target-bu').value=bi;openModal('modal-add-kpi');}
+function addKPI(){
+  const bi=parseInt(document.getElementById('kpi-target-bu').value);
+  const n=document.getElementById('new-kpi-name').value.trim(),t=document.getElementById('new-kpi-target').value.trim(),d=document.getElementById('new-kpi-desc').value.trim();
+  if(!n)return;pushUndo();S.bus[bi].kpis.push({n,t,d,val:'',st:'not-started'});save();renderSC();
+  ['new-kpi-name','new-kpi-target','new-kpi-desc'].forEach(id=>document.getElementById(id).value='');closeModal('modal-add-kpi');
+}
+function openLogWeek(bi){
+  document.getElementById('log-week-label').value='';
+  document.getElementById('log-week-fields').innerHTML=
+    `<p style="font-size:12px;color:var(--text2);margin-bottom:8px">${esc(S.bus[bi].name)}</p>`+
+    S.bus[bi].kpis.map((k,ki)=>`<div class="form-row"><label>${esc(k.n)} <span style="font-weight:400;color:var(--text3)">(target: ${esc(k.t)})</span></label><input type="text" id="wl-${bi}-${ki}" placeholder="${esc(k.t)}" value="${esc(k.val||'')}"></div>`).join('');
+  document.getElementById('modal-log-week').dataset.bi=bi;openModal('modal-log-week');
+}
+function saveWeekLog(){
+  const bi=parseInt(document.getElementById('modal-log-week').dataset.bi);
+  const lbl=document.getElementById('log-week-label').value.trim()||new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric'});
+  const kpis=S.bus[bi].kpis.map((k,ki)=>({n:k.n,t:k.t,val:document.getElementById('wl-'+bi+'-'+ki).value}));
+  pushUndo();S.weekLogs.push({bi,buName:S.bus[bi].name,label:lbl,date:new Date().toISOString(),kpis});
+  kpis.forEach((k,ki)=>{if(k.val)S.bus[bi].kpis[ki].val=k.val;});
+  save();renderSC();closeModal('modal-log-week');
+}
+function renderSCHistory(){
+  var el=document.getElementById('sc-hist-body'),he=document.getElementById('sc-hist-head'),ee=document.getElementById('sc-hist-empty');
+  if(!S.weekLogs.length){el.innerHTML='';he.innerHTML='';ee.style.display='block';return;}
+  ee.style.display='none';
+  var weeks=[...new Set(S.weekLogs.map(function(l){return l.label;}))];
+  var hdr='<tr><th>BU</th><th>KPI</th><th>Target</th>';
+  weeks.forEach(function(w){hdr+='<th>'+esc(w)+'</th>';});
+  hdr+='</tr>';
+  he.innerHTML=hdr;
+  var byBU={};
+  S.weekLogs.forEach(function(log){if(!byBU[log.buName])byBU[log.buName]=[];byBU[log.buName].push(log);});
+  var rows='';
+  Object.entries(byBU).forEach(function(entry){
+    var bn=entry[0],logs=entry[1];
+    var allK=[...new Set(logs.flatMap(function(l){return l.kpis.map(function(k){return k.n;});}))];
+    allK.forEach(function(kn){
+      var tgt=logs[0].kpis.find(function(k){return k.n===kn;});
+      rows+='<tr style="font-size:12px"><td><span class="badge badge-blue">'+esc(bn)+'</span></td><td>'+esc(kn)+'</td><td style="color:var(--text3)">'+esc(tgt?tgt.t:'')+'</td>';
+      weeks.forEach(function(wk){
+        var log=logs.find(function(l){return l.label===wk;});
+        var kpi=log?log.kpis.find(function(k){return k.n===kn;}):null;
+        var v=kpi?kpi.val:'';
+        var style=v&&v.includes('✅')?'color:var(--green-text);font-weight:600':v?'':'color:var(--text3)';
+        rows+='<td style="'+style+'">'+esc(v||'—')+'</td>';
+      });
+      rows+='</tr>';
+    });
+  });
+  el.innerHTML=rows;
+}
+// ============================================================
+//  ROCKS — milestone table matching Excel format
+// ============================================================
+function changeRockStatus(el, ri){
+  pushUndo();
+  S.rocks[ri].status = el.value;
+  save();
+  renderRocks();
+}
+function changeMsStatus(el, ri, mi){
+  pushUndo();
+  S.rocks[ri].milestones[mi].status = el.value;
+  save();
+  el.className = 'status-select ' + (SC[el.value]||'s-not-started');
+}
+
+function renderRocks(){
+  const el=document.getElementById('rocks-list'),al=document.getElementById('rocks-arc-list');
+  const active=S.rocks.filter(r=>!r.archived),archived=S.rocks.filter(r=>r.archived);
+  el.innerHTML=active.length?active.map(r=>rockCard(r,S.rocks.indexOf(r))).join(''):'<div class="empty-state">No rocks. Add one above.</div>';
+  al.innerHTML=archived.length?archived.map(r=>rockCard(r,S.rocks.indexOf(r),true)).join(''):'<div class="empty-state">No archived rocks.</div>';
+}
+function rockCard(r,ri,isArc=false){
+  const dotColor=DOT[r.status]||'#aaa';
+  const msRows=(r.milestones||[]).map((m,mi)=>`<tr>
+    <td style="white-space:nowrap;font-weight:600">${esc(m.id)}</td>
+    <td contenteditable="true" onblur="S.rocks[${ri}].milestones[${mi}].text=this.textContent.trim();save()">${esc(m.text)}</td>
+    <td contenteditable="true" onblur="S.rocks[${ri}].milestones[${mi}].responsible=this.textContent.trim();save()">${esc(m.responsible||'')}</td>
+    <td contenteditable="true" onblur="S.rocks[${ri}].milestones[${mi}].accountable=this.textContent.trim();save()">${esc(m.accountable||'')}</td>
+    <td><input type="date" value="${esc(m.deadline||'')}" style="width:120px;font-size:11px;padding:2px 4px" onchange="pushUndo();S.rocks[${ri}].milestones[${mi}].deadline=this.value;save()"></td>
+    <td>${stSel(m.status||'not-started','changeMsStatus(el,'+ri+','+mi+')',true)}</td>
+    <td contenteditable="true" onblur="S.rocks[${ri}].milestones[${mi}].notes=this.textContent.trim();save()" style="color:var(--text2)">${esc(m.notes||'')}</td>
+    <td><button class="btn btn-icon btn-sm" onclick="pushUndo();S.rocks[${ri}].milestones.splice(${mi},1);save();renderRocks()" style="color:var(--red-text)"><i class="ti ti-x"></i></button></td>
+  </tr>`).join('');
+  return`<div class="rock-block">
+    <div class="rock-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:10px;height:10px;border-radius:50%;background:${dotColor};flex-shrink:0"></div>
+        <span class="rock-title">[${esc(r.dept)}] ${esc(r.name)}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text3)">Owner: <b>${esc(r.owner)}</b></span>
+        ${r.deadline?`<span style="font-size:11px;color:var(--text3)">Deadline: <b>${esc(r.deadline)}</b></span>`:''}
+        ${stSel(r.status,'changeRockStatus(el,'+ri+')')}
+        <button class="btn btn-icon btn-sm" onclick="editRock(${ri})" title="Edit"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-icon btn-sm" onclick="addMilestone(${ri})" title="Add milestone"><i class="ti ti-plus"></i></button>
+        <button class="btn btn-icon btn-sm" onclick="pushUndo();S.rocks[${ri}].archived=!S.rocks[${ri}].archived;save();renderRocks()" title="${isArc?'Unarchive':'Archive'}"><i class="ti ti-archive"></i></button>
+        <button class="btn btn-icon btn-sm" onclick="if(confirm('Delete rock?')){pushUndo();S.rocks.splice(${ri},1);save();renderRocks()}" style="color:var(--red-text)"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>
+    <div class="rock-body">
+      ${r.notes?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px;font-style:italic">${esc(r.notes)}</div>`:''}
+      <div style="overflow-x:auto">
+      <table class="ms-table">
+        <thead><tr><th>ID</th><th>Milestone / Task</th><th>Responsible</th><th>Accountable</th><th>Deadline</th><th>Status</th><th>Notes</th><th></th></tr></thead>
+        <tbody>${msRows||'<tr><td colspan="8" style="color:var(--text3);text-align:center;padding:8px">No milestones yet. Click + above.</td></tr>'}</tbody>
+      </table>
+      </div>
+    </div>
+  </div>`;
+}
+function addMilestone(ri){
+  const id=prompt('Milestone ID (e.g. M1, 1.1):','');if(id===null)return;
+  const text=prompt('Milestone text:','');if(!text)return;
+  pushUndo();
+  S.rocks[ri].milestones=S.rocks[ri].milestones||[];
+  S.rocks[ri].milestones.push({id:id||'M',text,responsible:'',accountable:'',deadline:'',status:'not-started',notes:''});
+  save();renderRocks();
+}
+function addRock(){
+  const dept=document.getElementById('rock-dept').value;
+  const status=document.getElementById('rock-status').value;
+  const name=document.getElementById('rock-name').value.trim();
+  const owner=document.getElementById('rock-owner').value.trim();
+  const deadline=document.getElementById('rock-deadline').value;
+  const msText=document.getElementById('rock-milestones').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const notes=document.getElementById('rock-notes').value.trim();
+  if(!name)return;
+  const milestones=msText.map(t=>{const m=t.match(/^([^\s:]+)[:\s]+(.+)/);return{id:m?m[1]:'M',text:m?m[2]:t,responsible:'',accountable:'',deadline:'',status:'not-started',notes:''};});
+  pushUndo();S.rocks.push({dept,status,name,owner,deadline,milestones,notes,archived:false});
+  save();renderRocks();
+  ['rock-name','rock-owner','rock-deadline','rock-milestones','rock-notes'].forEach(id=>document.getElementById(id).value='');
+  closeModal('modal-rock');
+}
+function editRock(ri){
+  const r=S.rocks[ri];
+  document.getElementById('edit-rock-idx').value=ri;
+  document.getElementById('edit-rock-dept').value=r.dept;
+  document.getElementById('edit-rock-status').value=r.status;
+  document.getElementById('edit-rock-name').value=r.name;
+  document.getElementById('edit-rock-owner').value=r.owner;
+  document.getElementById('edit-rock-deadline').value=r.deadline||'';
+  document.getElementById('edit-rock-milestones').value=(r.milestones||[]).map(m=>`${m.id}: ${m.text}`).join('\n');
+  document.getElementById('edit-rock-notes').value=r.notes||'';
+  openModal('modal-rock-edit');
+}
+function saveRockEdit(){
+  const ri=parseInt(document.getElementById('edit-rock-idx').value);
+  pushUndo();
+  S.rocks[ri].dept=document.getElementById('edit-rock-dept').value;
+  S.rocks[ri].status=document.getElementById('edit-rock-status').value;
+  S.rocks[ri].name=document.getElementById('edit-rock-name').value.trim();
+  S.rocks[ri].owner=document.getElementById('edit-rock-owner').value.trim();
+  S.rocks[ri].deadline=document.getElementById('edit-rock-deadline').value;
+  const existing=S.rocks[ri].milestones||[];
+  const newTexts=document.getElementById('edit-rock-milestones').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  S.rocks[ri].milestones=newTexts.map((t,i)=>{const m=t.match(/^([^\s:]+)[:\s]+(.+)/);const old=existing[i]||{};return{id:m?m[1]:old.id||'M',text:m?m[2]:t,responsible:old.responsible||'',accountable:old.accountable||'',deadline:old.deadline||'',status:old.status||'not-started',notes:old.notes||''};});
+  S.rocks[ri].notes=document.getElementById('edit-rock-notes').value.trim();
+  save();renderRocks();closeModal('modal-rock-edit');
+}
+
+// ============================================================
+//  FEEDBACK (renamed from Headlines)
+// ============================================================
+const FB_TYPE={win:'<span class="badge badge-green">Win</span>',news:'<span class="badge badge-blue">News</span>',challenge:'<span class="badge badge-red">Challenge</span>'};
+const FB_ISSUE={yes:'<span class="badge badge-red">Issue</span>',no:'<span class="badge badge-gray">Not issue</span>',neutral:'<span class="badge badge-amber">Neutral</span>'};
+
+function renderFB(){
+  const al=document.getElementById('fb-list'),ar=document.getElementById('fb-arc-list');
+  const active=S.feedback.filter(f=>!f.archived),archived=S.feedback.filter(f=>f.archived);
+  al.innerHTML=active.length?active.map(f=>fbRow(f,S.feedback.indexOf(f))).join(''):'<div class="empty-state">No active feedback.</div>';
+  ar.innerHTML=archived.length?archived.map(f=>fbRow(f,S.feedback.indexOf(f),true)).join(''):'<div class="empty-state">No archived feedback.</div>';
+}
+function fbRow(f,fi,isArc=false){
+  const doneBtn=`<select class="status-select ${f.status==='done'?'s-done':'s-ongoing'}" onchange="pushUndo();fbStatusChange(${fi},this.value)" style="font-size:11px;padding:2px 18px 2px 6px"><option value="open"${f.status!=='done'?' selected':''}>Open</option><option value="done"${f.status==='done'?' selected':''}>Done</option></select>`;
+  return`<div class="fb-row">
+    <div style="display:flex;flex-direction:column;gap:3px">${FB_TYPE[f.type]||''}${FB_ISSUE[f.issue]||''}</div>
+    <div>${doneBtn}</div>
+    <div>
+      <div style="font-size:11px;color:var(--text3)">${esc(f.source)}${f.by?' · '+esc(f.by):''}${f.date?' · '+esc(f.date):''}</div>
+      <div style="font-size:13px;margin-top:2px">${esc(f.text)}</div>
+    </div>
+    <div style="display:flex;gap:4px">
+      <button class="btn btn-icon btn-sm" onclick="editFB(${fi})" title="Edit"><i class="ti ti-edit"></i></button>
+      <button class="btn btn-icon btn-sm" onclick="pushUndo();S.feedback[${fi}].archived=!S.feedback[${fi}].archived;save();renderFB()" title="${isArc?'Unarchive':'Archive'}"><i class="ti ti-archive"></i></button>
+      <button class="btn btn-icon btn-sm" onclick="pushUndo();S.feedback.splice(${fi},1);save();renderFB()" style="color:var(--red-text)"><i class="ti ti-trash"></i></button>
+    </div>
+  </div>`;
+}
+function fbStatusChange(fi,val){
+  pushUndo();
+  S.feedback[fi].status=val;
+  if(val==='done'){
+    const f=S.feedback[fi];
+    if(f.issue==='yes'){
+      // Move to IDS issue board
+      S.issues.push({source:f.source||'Feedback',by:f.by||'',text:f.text,priority:'Medium',status:'ongoing',archived:false,resolved:false,fiveWhy:'',context:'Escalated from Feedback — tagged as issue',endInMind:'',now:'',aiLens:'',alternatives:'',nextSteps:''});
+      S.feedback[fi].archived=true;
+      alert('Moved to IDS Issues board.');
+    } else {
+      // Archive for non-issue / neutral
+      S.feedback[fi].archived=true;
+    }
+  }
+  save();renderFB();renderIssues();
+}
+function addFB(){
+  const type=document.getElementById('fb-type').value;
+  const issue=document.getElementById('fb-issue').value;
+  const status=document.getElementById('fb-status').value;
+  const source=document.getElementById('fb-source').value.trim();
+  const text=document.getElementById('fb-text').value.trim();
+  const by=document.getElementById('fb-by').value.trim();
+  const date=document.getElementById('fb-date').value;
+  if(!text)return;
+  pushUndo();
+  S.feedback.push({type,issue,source,text,by,date,status,archived:false});
+  if(status==='done'){fbStatusChange(S.feedback.length-1,'done');return;}
+  save();renderFB();
+  ['fb-source','fb-text','fb-by','fb-date'].forEach(id=>document.getElementById(id).value='');
+  closeModal('modal-fb');
+}
+function editFB(fi){
+  const f=S.feedback[fi];
+  document.getElementById('edit-fb-idx').value=fi;
+  document.getElementById('edit-fb-type').value=f.type;
+  document.getElementById('edit-fb-issue').value=f.issue;
+  document.getElementById('edit-fb-status').value=f.status;
+  document.getElementById('edit-fb-source').value=f.source||'';
+  document.getElementById('edit-fb-text').value=f.text;
+  document.getElementById('edit-fb-by').value=f.by||'';
+  document.getElementById('edit-fb-date').value=f.date||'';
+  openModal('modal-fb-edit');
+}
+function saveFBEdit(){
+  const fi=parseInt(document.getElementById('edit-fb-idx').value);
+  pushUndo();
+  S.feedback[fi].type=document.getElementById('edit-fb-type').value;
+  S.feedback[fi].issue=document.getElementById('edit-fb-issue').value;
+  S.feedback[fi].status=document.getElementById('edit-fb-status').value;
+  S.feedback[fi].source=document.getElementById('edit-fb-source').value.trim();
+  S.feedback[fi].text=document.getElementById('edit-fb-text').value.trim();
+  S.feedback[fi].by=document.getElementById('edit-fb-by').value.trim();
+  S.feedback[fi].date=document.getElementById('edit-fb-date').value;
+  save();renderFB();closeModal('modal-fb-edit');
+}
+
+// ============================================================
+//  TO-DO
+// ============================================================
+const ABADGE={Finance:'badge-blue',Admin:'badge-gray',Compliance:'badge-red',All:'badge-amber',IT:'badge-green'};
+function changeTodoStatus(el, ti){
+  var val = el.value;
+  pushUndo();
+  S.todos[ti].status = val;
+  if(val === 'done'){
+    S.todos[ti].archived = true;
+    save();
+    renderTodos();
+  } else {
+    save();
+    // Just update the visual — no full re-render needed for status change
+    el.className = 'status-select ' + (SC[val]||'s-not-started');
+  }
+}
+function renderTodos(){
+  const tb=document.getElementById('todos-body'),atb=document.getElementById('todos-arc-body'),ee=document.getElementById('td-arc-empty');
+  const active=S.todos.filter(t=>!t.archived),archived=S.todos.filter(t=>t.archived);
+  tb.innerHTML=active.length?active.map((t,i)=>tdRow(t,S.todos.indexOf(t))).join(''):'<tr><td colspan="8"><div class="empty-state">No active to-dos.</div></td></tr>';
+  atb.innerHTML=archived.map((t,i)=>`<tr><td><span class="badge ${ABADGE[t.area]||'badge-gray'}">${esc(t.area)}</span></td><td>${esc(t.text)}</td><td>${esc(t.poc)}</td><td><span class="badge ${t.status==='done'?'badge-green':t.status==='stuck'?'badge-red':'badge-amber'}">${ST[t.status]||t.status}</span></td><td><button class="btn btn-icon btn-sm" onclick="pushUndo();S.todos[${S.todos.indexOf(t)}].archived=false;save();renderTodos()" title="Restore"><i class="ti ti-archive-off"></i></button></td></tr>`).join('');
+  ee.style.display=archived.length?'none':'block';
+}
+function tdRow(t,ti){
+  return`<tr>
+    <td><span class="badge ${ABADGE[t.area]||'badge-gray'}">${esc(t.area)}</span></td>
+    <td style="min-width:160px">${esc(t.text)}</td>
+    <td style="white-space:nowrap">${esc(t.poc)||'—'}</td>
+    <td style="white-space:nowrap">${esc(t.help)||'—'}</td>
+    <td style="white-space:nowrap">${t.adjDue?esc(t.adjDue)+'*':t.due?esc(t.due):'—'}</td>
+    <td>${stSel(t.status||'ongoing','changeTodoStatus(el,'+ti+')')}</td>
+    <td style="max-width:140px;font-size:11px;color:var(--text2)">${esc(t.notes)||''}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-icon btn-sm" onclick="editTodo(${ti})" title="Edit"><i class="ti ti-edit"></i></button>
+      <button class="btn btn-icon btn-sm" onclick="pushUndo();S.todos[${ti}].archived=!S.todos[${ti}].archived;save();renderTodos()" title="Archive"><i class="ti ti-archive"></i></button>
+      <button class="btn btn-icon btn-sm" onclick="if(confirm('Delete?')){pushUndo();S.todos.splice(${ti},1);save();renderTodos()}" style="color:var(--red-text)"><i class="ti ti-trash"></i></button>
+    </td>
+  </tr>`;
+}
+function addTodo(){
+  pushUndo();
+  S.todos.push({area:document.getElementById('td-area').value,text:document.getElementById('td-text').value.trim(),poc:document.getElementById('td-poc').value.trim(),help:document.getElementById('td-help').value.trim(),due:document.getElementById('td-due').value,adjDue:document.getElementById('td-adj-due').value,notes:document.getElementById('td-notes').value.trim(),status:'ongoing',archived:false});
+  save();renderTodos();
+  ['td-text','td-poc','td-help','td-due','td-adj-due','td-notes'].forEach(id=>document.getElementById(id).value='');
+  closeModal('modal-todo');
+}
+function editTodo(ti){
+  const t=S.todos[ti];
+  document.getElementById('edit-td-idx').value=ti;
+  document.getElementById('edit-td-area').value=t.area;
+  document.getElementById('edit-td-poc').value=t.poc||'';
+  document.getElementById('edit-td-text').value=t.text;
+  document.getElementById('edit-td-help').value=t.help||'';
+  document.getElementById('edit-td-due').value=t.due||'';
+  document.getElementById('edit-td-adj-due').value=t.adjDue||'';
+  document.getElementById('edit-td-notes').value=t.notes||'';
+  document.getElementById('edit-td-status').value=t.status||'ongoing';
+  openModal('modal-td-edit');
+}
+function saveTdEdit(){
+  const ti=parseInt(document.getElementById('edit-td-idx').value);pushUndo();
+  S.todos[ti].area=document.getElementById('edit-td-area').value;
+  S.todos[ti].poc=document.getElementById('edit-td-poc').value.trim();
+  S.todos[ti].text=document.getElementById('edit-td-text').value.trim();
+  S.todos[ti].help=document.getElementById('edit-td-help').value.trim();
+  S.todos[ti].due=document.getElementById('edit-td-due').value;
+  S.todos[ti].adjDue=document.getElementById('edit-td-adj-due').value;
+  S.todos[ti].notes=document.getElementById('edit-td-notes').value.trim();
+  S.todos[ti].status=document.getElementById('edit-td-status').value;
+  if(S.todos[ti].status==='done')S.todos[ti].archived=true;
+  save();renderTodos();closeModal('modal-td-edit');
+}
+
+// ============================================================
+//  ISSUES
+// ============================================================
+function changeIssueStatus(el, ri){
+  var val = el.value;
+  pushUndo();
+  S.issues[ri].status = val;
+  if(val === 'done'){
+    resolveIssue(ri);
+  } else {
+    save();
+    el.className = 'status-select ' + (SC[val]||'s-not-started');
+  }
+}
+function renderIssues(){
+  const el=document.getElementById('issues-list'),al=document.getElementById('iss-arc-list');
+  const active=S.issues.filter(i=>!i.archived&&!i.resolved),archived=S.issues.filter(i=>i.archived&&!i.resolved);
+  const pb={High:'badge-red',Medium:'badge-amber',Low:'badge-gray'};
+  el.innerHTML=active.length?active.map((iss,i)=>{const ri=S.issues.indexOf(iss);return`<div class="issue-row">
+    <div class="issue-num">${i+1}</div>
+    <div>
+      <div><span class="badge ${pb[iss.priority]||'badge-gray'}">${esc(iss.priority)}</span> <b>${esc(iss.source)}</b>${iss.by?' · '+esc(iss.by):''}</div>
+      <div style="margin-top:4px;font-size:13px">${esc(iss.text)}</div>
+      <div style="margin-top:4px">${stSel(iss.status||'ongoing','changeIssueStatus(el,'+ri+')')}</div>
+    </div>
+    <div style="display:flex;gap:4px;flex-shrink:0">
+      <button class="btn btn-green btn-sm" onclick="openIDS(${ri})">IDS</button>
+      <button class="btn btn-icon btn-sm" onclick="pushUndo();S.issues[${ri}].archived=true;save();renderIssues()" title="Archive"><i class="ti ti-archive"></i></button>
+      <button class="btn btn-icon btn-sm" onclick="if(confirm('Delete?')){pushUndo();S.issues.splice(${ri},1);save();renderIssues()}" style="color:var(--red-text)"><i class="ti ti-trash"></i></button>
+    </div>
+  </div>`;}).join(''):'<div class="empty-state">No open issues.</div>';
+  al.innerHTML=archived.length?archived.map((iss,i)=>{const ri=S.issues.indexOf(iss);return`<div class="issue-row"><div class="issue-num">${i+1}</div><div style="flex:1;font-size:13px">${esc(iss.text)}</div><button class="btn btn-icon btn-sm" onclick="pushUndo();S.issues[${ri}].archived=false;save();renderIssues()" title="Restore"><i class="ti ti-archive-off"></i></button></div>`;}).join(''):'<div class="empty-state">No archived issues.</div>';
+}
+function openIDS(ri){
+  const iss=S.issues[ri];if(!iss)return;
+  document.getElementById('ids-detail').innerHTML=`<div style="font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">${esc(iss.text)}</div>
+    ${['fiveWhy:5 Whys','context:Context','endInMind:End in Mind','now:What\'s Happening Now','aiLens:AI Lens (people / process / tech)','alternatives:Alternatives Considered','nextSteps:Next Steps (who / c/o)'].map(p=>{const[k,lbl]=p.split(':');const eid='ids-'+k;return`<div class="form-row"><label>${lbl}</label><textarea id="${eid}" placeholder="${lbl}...">${esc(iss[k]||'')}</textarea></div>`;}).join('')}
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn btn-green" onclick="saveIDS(${ri})"><i class="ti ti-device-floppy"></i> Save</button>
+      <button class="btn" onclick="resolveIssue(${ri})"><i class="ti ti-check"></i> Resolve & move</button>
+    </div>`;
+  document.getElementById('ids-panel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function saveIDS(ri){
+  const map={fiveWhy:'ids-fiveWhy',context:'ids-context',endInMind:'ids-endInMind',now:'ids-now',aiLens:'ids-aiLens',alternatives:'ids-alternatives',nextSteps:'ids-nextSteps'};
+  Object.entries(map).forEach(([k,id])=>{const el=document.getElementById(id);if(el)S.issues[ri][k]=el.value;});
+  save();showSaved();
+}
+function resolveIssue(ri){
+  const iss=S.issues[ri];
+  pushUndo();S.resolved.unshift({source:iss.source||'—',text:iss.text,nextSteps:iss.nextSteps||'',poc:iss.by||''});
+  S.issues[ri].resolved=true;save();renderIssues();renderResolved();
+  document.getElementById('ids-detail').innerHTML='<div class="empty-state">Issue moved to Resolved.</div>';
+}
+function addIssue(){
+  pushUndo();
+  S.issues.push({source:document.getElementById('iss-source').value.trim(),by:document.getElementById('iss-by').value.trim(),text:document.getElementById('iss-text').value.trim(),priority:document.getElementById('iss-priority').value,status:'ongoing',archived:false,resolved:false});
+  save();renderIssues();
+  ['iss-source','iss-by','iss-text'].forEach(id=>document.getElementById(id).value='');closeModal('modal-issue');
+}
+
+// ============================================================
+//  RESOLVED
+// ============================================================
+function renderResolved(){
+  var tb=document.getElementById('resolved-body'),ee=document.getElementById('resolved-empty');
+  ee.style.display=S.resolved.length?'none':'block';
+  var rows='';
+  S.resolved.forEach(function(r,i){
+    rows+='<tr>';
+    rows+='<td><span class="badge badge-blue">'+esc(r.source)+'</span></td>';
+    rows+='<td style="font-size:13px">'+esc(r.text)+'</td>';
+    rows+='<td style="font-size:12px;color:var(--text2)">'+esc(r.nextSteps)+'</td>';
+    rows+='<td style="white-space:nowrap">'+esc(r.poc)+'</td>';
+    rows+='<td style="white-space:nowrap">';
+    if(r.fiveWhy||r.context||r.endInMind||r.nextSteps){
+      rows+='<button class="btn btn-sm" onclick="showResolvedIDS('+i+')" style="margin-right:4px"><i class="ti ti-files"></i> View IDS</button>';
+    }
+    rows+='<button class="btn btn-sm" onclick="restoreIssue('+i+')" style="margin-right:4px" title="Re-open"><i class="ti ti-arrow-back-up"></i> Restore</button>';
+    rows+='<button class="btn btn-icon btn-sm" onclick="delResolved('+i+')" style="color:var(--red-text)"><i class="ti ti-trash"></i></button>';
+    rows+='</td></tr>';
+  });
+  tb.innerHTML=rows;
+}
+function delResolved(i){if(!confirm('Delete permanently?'))return;pushUndo();S.resolved.splice(i,1);save();renderResolved();}
+function restoreIssue(i){
+  var r=S.resolved[i];
+  pushUndo();
+  S.issues.push({source:r.source,by:r.poc,text:r.text,priority:'Medium',status:'ongoing',archived:false,resolved:false,fiveWhy:r.fiveWhy||'',context:r.context||'',endInMind:r.endInMind||'',now:r.now||'',aiLens:r.aiLens||'',alternatives:r.alternatives||'',nextSteps:r.nextSteps||''});
+  S.resolved.splice(i,1);
+  save();renderResolved();renderIssues();
+  alert('Issue restored to IDS Issues board.');
+}
+function showResolvedIDS(i){
+  var r=S.resolved[i];
+  var fields=[['5 Whys',r.fiveWhy],['Context',r.context],['End in Mind',r.endInMind],['What Was Happening',r.now],['AI Lens',r.aiLens],['Alternatives',r.alternatives],['Next Steps / Resolution',r.nextSteps]];
+  var html='<div style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--green)">'+esc(r.text)+'</div>';
+  fields.forEach(function(f){
+    if(f[1]){html+='<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:3px">'+f[0]+'</div><div style="font-size:13px;color:var(--text);background:var(--bg2);border-radius:6px;padding:8px">'+esc(f[1])+'</div></div>';}
+  });
+  if(!html.includes('background:var(--bg2)')){html+='<div style="color:var(--text3);font-size:13px">No IDS discussion was recorded for this issue.</div>';}
+  document.getElementById('ids-resolved-content').innerHTML=html;
+  document.getElementById('modal-ids-resolved').classList.add('open');
+}
+
+// ============================================================
+//  PROBING
+// ============================================================
+function renderProbing(){
+  const el=document.getElementById('probing-list');
+  const cats=[...new Set(S.probing.map(p=>p.cat))];
+  el.innerHTML=cats.map(cat=>{
+    const qs=S.probing.map((p,i)=>({...p,idx:i})).filter(p=>p.cat===cat);
+    return`<div class="card"><div class="card-header"><span class="card-title" contenteditable="true" onblur="pushUndo();S.probing.forEach(p=>{if(p.cat==='${esc(cat)}')p.cat=this.textContent.trim();});save();renderProbing()">${esc(cat)}</span></div>
+      <ul style="padding-left:0;list-style:none">${qs.map(p=>`<li style="display:flex;gap:8px;align-items:start;padding:6px 0;border-bottom:1px solid var(--border)"><span contenteditable="true" onblur="pushUndo();S.probing[${p.idx}].q=this.textContent.trim();save()" style="flex:1;font-size:13px;line-height:1.7;color:var(--text2)">${esc(p.q)}</span><button class="btn btn-icon btn-sm" onclick="pushUndo();S.probing.splice(${p.idx},1);save();renderProbing()" style="color:var(--red-text)"><i class="ti ti-x"></i></button></li>`).join('')}</ul>
+    </div>`;
+  }).join('');
+}
+function addProbing(){
+  const cat=document.getElementById('pb-cat').value.trim(),q=document.getElementById('pb-q').value.trim();
+  if(!q)return;pushUndo();S.probing.push({cat:cat||'General',q});save();renderProbing();
+  document.getElementById('pb-cat').value='';document.getElementById('pb-q').value='';closeModal('modal-pb-add');
+}
+
+// ============================================================
+//  RATING
+// ============================================================
+function renderRatings(){
+  const el=document.getElementById('rating-today');
+  if(!S.ratings.length){el.innerHTML='';return;}
+  const avg=(S.ratings.reduce((a,r)=>a+r.score,0)/S.ratings.length).toFixed(1);
+  el.innerHTML=`<div class="metric" style="margin-bottom:14px;max-width:140px"><div class="metric-val">${avg}</div><div class="metric-label">Today's avg (${S.ratings.length})</div></div>`+
+    S.ratings.map((r,i)=>`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div class="avatar">${(r.name||'?').slice(0,2).toUpperCase()}</div>
+      <span style="flex:1;font-size:13px">${esc(r.name)}</span>
+      <span style="font-size:18px;font-weight:700;color:var(--green)">${r.score}</span>
+      ${r.question?`<span style="font-size:11px;color:var(--text3);font-style:italic">"${esc(r.question)}"</span>`:''}
+      <button class="btn btn-icon btn-sm" onclick="pushUndo();S.ratings.splice(${i},1);save();renderRatings()" style="color:var(--red-text)"><i class="ti ti-x"></i></button>
+    </div>`).join('');
+}
+function addRating(){
+  var sel=document.getElementById('rating-name-sel');
+  var name=sel.value==='__other__'?document.getElementById('rating-name-custom').value.trim():sel.value;
+  var score=parseInt(document.getElementById('rating-score').value);
+  var question=document.getElementById('rating-question').value.trim();
+  if(!name||!score||score<1||score>10)return;
+  pushUndo();S.ratings.push({name:name,score:score,question:question});save();renderRatings();
+  sel.value='';document.getElementById('rating-name-custom').value='';document.getElementById('rating-name-custom').style.display='none';
+  document.getElementById('rating-score').value='';document.getElementById('rating-question').value='';
+}
+function closeWeek(){
+  if(!S.ratings.length){alert('No ratings submitted yet.');return;}
+  const lbl=prompt('Label for this week?',new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric'}));if(!lbl)return;
+  const scores={};S.ratings.forEach(r=>{scores[r.name]=r.score;});
+  const vals=Object.values(scores);const avg=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1);
+  const row=document.createElement('tr');
+  row.innerHTML=`<td>${esc(lbl)}</td>${MEMBERS.map(m=>`<td>${scores[m]||'—'}</td>`).join('')}<td><b>${avg}</b></td>`;
+  document.getElementById('rating-hist').appendChild(row);
+  pushUndo();S.ratings=[];save();renderRatings();
+}
+
+// ============================================================
+//  AI
+// ============================================================
+const DBADGE={FIN:'badge-blue',ADM:'badge-gray',COM:'badge-red',OPS:'badge-amber',IT:'badge-green'};
+function changeAIStatus(el, ai){
+  pushUndo();
+  S.ai[ai].status = el.value;
+  save();
+  renderAI();
+}
+function renderAI(){
+  const el=document.getElementById('ai-list'),al=document.getElementById('ai-arc-list');
+  const active=S.ai.filter(a=>!a.archived),archived=S.ai.filter(a=>a.archived);
+  function aiCard(a,ai,isArc){
+    return`<div class="card" style="margin-bottom:8px">
+      <div class="card-header">
+        <div style="display:flex;gap:8px;align-items:center"><span class="badge ${DBADGE[a.dept]||'badge-gray'}">${esc(a.dept)}</span><span style="font-size:13px;font-weight:500">${esc(a.name)}</span></div>
+        <div style="display:flex;gap:5px;align-items:center">
+          ${stSel(a.status,'changeAIStatus(el,'+ai+')')}
+          <button class="btn btn-icon btn-sm" onclick="editAI(${ai})" title="Edit"><i class="ti ti-edit"></i></button>
+          <button class="btn btn-icon btn-sm" onclick="pushUndo();S.ai[${ai}].archived=!S.ai[${ai}].archived;save();renderAI()" title="${isArc?'Unarchive':'Archive'}"><i class="ti ti-archive"></i></button>
+          <button class="btn btn-icon btn-sm" onclick="if(confirm('Delete?')){pushUndo();S.ai.splice(${ai},1);save();renderAI()}" style="color:var(--red-text)"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+      ${a.notes?`<div style="font-size:12px;color:var(--text2)">${esc(a.notes)}</div>`:''}
+    </div>`;
+  }
+  el.innerHTML=active.length?active.map((a,i)=>aiCard(a,S.ai.indexOf(a),false)).join(''):'<div class="empty-state">No AI initiatives. Add one above.</div>';
+  al.innerHTML=archived.length?archived.map((a,i)=>aiCard(a,S.ai.indexOf(a),true)).join(''):'<div class="empty-state">No archived initiatives.</div>';
+}
+function addAI(){
+  pushUndo();S.ai.push({dept:document.getElementById('ai-dept').value,name:document.getElementById('ai-name').value.trim(),status:document.getElementById('ai-status').value,notes:document.getElementById('ai-notes').value.trim(),archived:false});
+  save();renderAI();document.getElementById('ai-name').value='';document.getElementById('ai-notes').value='';closeModal('modal-ai');
+}
+function editAI(ai){
+  const a=S.ai[ai];document.getElementById('edit-ai-idx').value=ai;
+  document.getElementById('edit-ai-dept').value=a.dept;document.getElementById('edit-ai-status').value=a.status;
+  document.getElementById('edit-ai-name').value=a.name;document.getElementById('edit-ai-notes').value=a.notes||'';
+  openModal('modal-ai-edit');
+}
+function saveAIEdit(){
+  const ai=parseInt(document.getElementById('edit-ai-idx').value);pushUndo();
+  S.ai[ai].dept=document.getElementById('edit-ai-dept').value;S.ai[ai].status=document.getElementById('edit-ai-status').value;
+  S.ai[ai].name=document.getElementById('edit-ai-name').value.trim();S.ai[ai].notes=document.getElementById('edit-ai-notes').value.trim();
+  save();renderAI();closeModal('modal-ai-edit');
+}
+
+function connectFirebase(){
+  var raw    = document.getElementById('fb-config-input').value.trim();
+  var errEl  = document.getElementById('fb-connect-error');
+  var btnEl  = document.querySelector('#modal-fb-setup .btn-green');
+  errEl.style.display = 'none';
+
+  // ── Parse the config ────────────────────────────────────────────────────
+  var cfg = null;
+  try{
+    // Strip "const firebaseConfig =" wrapper if present
+    var cleaned = raw.replace(/^.*?=\s*/, '').replace(/;?\s*$/, '').trim();
+    // Handle both object literal and JSON
+    cfg = (new Function('return (' + cleaned + ')'))();
+  } catch(e){
+    errEl.textContent = 'Could not parse config: ' + e.message + '. Make sure you copied the full firebaseConfig block.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  if(!cfg || !cfg.apiKey || !cfg.projectId){
+    errEl.textContent = 'Missing apiKey or projectId. Please copy the full firebaseConfig object from Firebase Console.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // ── Save config ─────────────────────────────────────────────────────────
+  try{ localStorage.setItem('atticus_fb_cfg', JSON.stringify(cfg)); }catch(e){}
+
+  // ── Wait for _fbInit to be available (module may still be loading) ──────
+  if(btnEl) btnEl.textContent = 'Connecting...';
+  errEl.style.display = 'none';
+
+  var waited = 0;
+  var tryInit = function(){
+    waited += 300;
+    if(window._fbInit){
+      // _fbInit is async — catch any errors it throws
+      Promise.resolve(window._fbInit(cfg))
+        .then(function(){
+          closeModal('modal-fb-setup');
+          if(btnEl) btnEl.textContent = 'Connect';
+        })
+        .catch(function(e){
+          errEl.textContent = 'Firebase error: ' + (e.message || e);
+          errEl.style.display = 'block';
+          if(btnEl) btnEl.textContent = 'Connect';
+        });
+    } else if(waited < 10000){
+      setTimeout(tryInit, 300);
+    } else {
+      errEl.textContent = 'Firebase SDK failed to load. Check your internet connection and try refreshing the page.';
+      errEl.style.display = 'block';
+      if(btnEl) btnEl.textContent = 'Connect';
+    }
+  };
+  setTimeout(tryInit, 100);
+}
+
+function showFbStatus(msg){
+  var el=document.getElementById('fb-status-text');
+  if(el) el.textContent=msg;
+  updateSyncTime();
+  console.log('[FB]', msg); // helps diagnose issues in browser console
+}
+
+function updateSyncTime(){
+  var el=document.getElementById('fb-last-sync');
+  if(el) el.textContent='Last sync: '+new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function exportJSON(){
+  var data = JSON.stringify(S, null, 2);
+  var blob = new Blob([data], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'atticus_l10_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(){
+  var raw = document.getElementById('import-json-input').value.trim();
+  try{
+    var data = JSON.parse(raw);
+    if(!data || typeof data !== 'object'){throw new Error('Invalid JSON structure');}
+    if(!confirm('This will replace ALL current data with the imported backup. Are you sure?')) return;
+    pushUndo();
+    S = data;
+    save();
+    renderAll();
+    closeModal('modal-import');
+    alert('Data imported successfully.');
+  } catch(e){
+    alert('Import failed: '+e.message);
+  }
+}
+
+function manualSync(){
+  if(!window._fbPull){
+    showFbStatus('not connected');
+    return;
+  }
+  showFbStatus('syncing...');
+  window._fbPull();
+}
+
+function disconnectFirebase(){
+  localStorage.removeItem('atticus_fb_cfg');
+  window._fbReady=false;
+  window._db=null;
+  window._doc=null;
+  document.getElementById('fb-setup-banner').style.display='flex';
+  document.getElementById('fb-status-bar').style.display='none';
+  alert('Disconnected from Firebase. Data is still in local storage.');
+}
+
+load();
+</script>
+
+<!-- IDS VIEW MODAL for Resolved Issues -->
+<div id="modal-ids-resolved" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+<div class="modal" style="max-width:640px">
+  <div class="modal-title">IDS Discussion Record</div>
+  <div id="ids-resolved-content"></div>
+  <div class="modal-footer"><button class="btn btn-green" onclick="document.getElementById('modal-ids-resolved').classList.remove('open')">Close</button></div>
+</div></div>
+
+
+<!-- FIREBASE SETUP MODAL -->
+<div id="modal-fb-setup" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-fb-setup')">
+<div class="modal" style="max-width:620px">
+  <div class="modal-title"><i class="ti ti-database" style="color:var(--green)"></i> Connect Firebase</div>
+  <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.7">
+    Paste your <strong>firebaseConfig</strong> below. You can find it in:<br>
+    <a href="https://console.firebase.google.com" target="_blank" style="color:var(--green)">console.firebase.google.com</a>
+    → <strong>Atticus FAC L10</strong> → gear ⚙ → <strong>Project settings</strong>
+    → scroll to <strong>Your apps</strong> → click your web app → copy the config block shown.
+  </div>
+  <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--text2)">
+    <strong>It looks like this — copy everything including the curly braces { }:</strong>
+    <pre style="margin-top:6px;font-size:11px;line-height:1.6;color:var(--text);overflow-x:auto">const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "atticus-fac-l10.firebaseapp.com",
+  projectId: "atticus-fac-l10",
+  storageBucket: "atticus-fac-l10.appspot.com",
+  messagingSenderId: "123...",
+  appId: "1:123...:web:abc..."
+};</pre>
+  </div>
+
+  <div style="background:var(--bg2);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:12px;color:var(--text2)">
+    <strong>Paste your firebaseConfig here</strong> — looks like:<br>
+    <pre style="margin-top:6px;font-size:11px;line-height:1.6;color:var(--text)">const firebaseConfig = {
+  apiKey: "AIza...",
+  authDomain: "atticus-l10.firebaseapp.com",
+  projectId: "atticus-l10",
+  storageBucket: "atticus-l10.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abc123"
+};</pre>
+  </div>
+
+  <div class="form-row"><label>Firebase Config (paste the full object)</label>
+    <textarea id="fb-config-input" style="min-height:120px;font-family:monospace;font-size:12px" placeholder='Paste your firebaseConfig = { ... } here'></textarea>
+  </div>
+
+
+  <div id="fb-connect-error" style="color:var(--red-text);font-size:12px;margin-bottom:8px;display:none;padding:8px;background:var(--red-bg);border-radius:6px"></div>
+  <div class="modal-footer">
+    <button class="btn" onclick="closeModal('modal-fb-setup')">Cancel</button>
+    <button class="btn" onclick="exportJSON()" style="margin-right:auto"><i class="ti ti-download"></i> Backup data</button>
+    <button class="btn btn-green" onclick="connectFirebase()"><i class="ti ti-plug"></i> Connect</button>
+  </div>
+</div></div>
+
+<!-- IMPORT MODAL -->
+<div id="modal-import" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-import')">
+<div class="modal" style="max-width:500px">
+  <div class="modal-title">Import / Restore Data</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Paste a previously exported JSON backup to restore all data. This will overwrite current data.</p>
+  <div class="form-row"><label>JSON backup</label>
+    <textarea id="import-json-input" style="min-height:120px;font-family:monospace;font-size:11px" placeholder='Paste exported JSON here...'></textarea>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" onclick="closeModal('modal-import')">Cancel</button>
+    <button class="btn btn-green" onclick="importJSON()">Import & Restore</button>
+  </div>
+</div></div>
+
+</body>
+</html>
