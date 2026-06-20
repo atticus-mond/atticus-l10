@@ -115,64 +115,81 @@ textarea{resize:vertical;min-height:62px}
 <script type="module">
   import { initializeApp, getApps, getApp }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp }
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  window._fbReady = false;
-  window._saveInProgress = false;
-  window._saveTimer = null;
+  window._fbReady    = false;
+  window._fbMyLastTs = 0;   // timestamp of the last payload WE wrote
 
   window._fbInit = function(cfg){
     try{
-      // Safe init — reuse existing app if already initialized
-      const existingApps = getApps();
-      const app = existingApps.length ? getApp() : initializeApp(cfg);
-
+      // Safe init — reuse app if already created
+      const app = getApps().length ? getApp() : initializeApp(cfg);
       const db  = getFirestore(app);
       const ref = doc(db, 'atticus_l10', 'state');
       window._db  = db;
       window._doc = ref;
 
-      // Real-time listener
+      // ── Real-time listener ────────────────────────────────────────────────
       onSnapshot(ref, snap => {
+
+        // ── Document does not exist yet in Firestore ─────────────────────
         if(!snap.exists()){
-          // First ever connection — push local data to Firestore
+          // Only push if we actually have real user data (not blank defState)
+          // We detect "real data" by checking if any todos/rocks/issues were added
+          var hasRealData = window.S &&
+            ((window.S.todos  && window.S.todos.length  > 0) ||
+             (window.S.rocks  && window.S.rocks.length  > 0) ||
+             (window.S.issues && window.S.issues.length > 0) ||
+             (window.S.feedback && window.S.feedback.length > 0));
           if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
-          if(window.S && window._fbSave){
-            window._fbSave(window.S);
+          if(hasRealData && window._fbSave){
+            // Push our real local data up to Firestore
+            window._fbSave(window.S, true);
           }
           if(typeof renderAll === 'function') renderAll();
           return;
         }
 
+        // ── Document exists — get the remote data ─────────────────────────
         const remote = snap.data();
-        if(!remote || !remote.payload) return;
-
-        // If we are mid-save, skip this echo — but ONLY skip once
-        if(window._saveInProgress){
-          window._saveInProgress = false;
+        if(!remote || !remote.payload){
+          if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
           return;
         }
 
-        // Parse and apply remote state
-        try{
-          const incoming = JSON.parse(remote.payload);
-          window.S = incoming;
-          try{ localStorage.setItem('atticus_l10_v5', remote.payload); }catch(e){}
-          // Clear loading overlay and timeout on first successful load
+        // ── Ignore echo of our OWN most recent save ───────────────────────
+        // Compare Firestore server timestamp to the ts we recorded on our last write
+        const remoteTs = remote.ts ? remote.ts.toMillis() : 0;
+        if(remoteTs > 0 && remoteTs <= window._fbMyLastTs){
+          // This is our own echo — still clear the overlay and render
           if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
           if(typeof renderAll === 'function') renderAll();
           showFbStatus('synced');
           updateSyncTime();
-        } catch(e){
-          console.error('Failed to parse remote payload:', e);
-          showFbStatus('sync error — bad data');
+          return;
+        }
+
+        // ── Apply remote state (from a teammate or a newer write) ─────────
+        try{
+          const incoming = JSON.parse(remote.payload);
+          window.S = incoming;
+          // Keep localStorage in sync so offline fallback is current
+          try{ localStorage.setItem('atticus_l10_v5', remote.payload); }catch(e){}
+          if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
+          if(typeof renderAll === 'function') renderAll();
+          showFbStatus('synced');
+          updateSyncTime();
+        } catch(parseErr){
+          console.error('Failed to parse Firestore payload:', parseErr);
+          showFbStatus('sync error');
           if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
         }
 
       }, err => {
         console.error('onSnapshot error:', err);
         showFbStatus('listener error: ' + err.code);
+        if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
       });
 
       window._fbReady = true;
@@ -183,43 +200,49 @@ textarea{resize:vertical;min-height:62px}
     } catch(e){
       console.error('Firebase init failed:', e);
       showFbStatus('init error: ' + e.message);
+      if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
     }
   };
 
-  window._fbSave = async function(payload){
+  // ── Save to Firestore ─────────────────────────────────────────────────────
+  // silent=true skips recording our own timestamp (used for initial push only)
+  window._fbSave = async function(payload, silent){
     if(!window._db || !window._doc) return false;
     try{
-      window._saveInProgress = true;
-      // Auto-reset the flag after 3s in case Firestore doesn't echo back
-      clearTimeout(window._saveTimer);
-      window._saveTimer = setTimeout(function(){
-        window._saveInProgress = false;
-      }, 3000);
-
       await setDoc(window._doc, {
         payload: JSON.stringify(payload),
         ts: serverTimestamp()
       }, { merge: false });
 
+      if(!silent){
+        // Record the server time of our write so the listener can detect echo
+        // We fetch the document right after to get the actual server timestamp
+        setTimeout(async function(){
+          try{
+            const snap = await getDoc(window._doc);
+            if(snap.exists() && snap.data().ts){
+              window._fbMyLastTs = snap.data().ts.toMillis();
+            }
+          } catch(e){}
+        }, 500);
+      }
       return true;
     } catch(e){
-      window._saveInProgress = false;
       console.error('Firestore write error:', e);
       showFbStatus('save error: ' + e.message);
       return false;
     }
   };
 
-  // Manual pull — force-read current Firestore state right now
+  // ── Manual force-pull from Firestore ─────────────────────────────────────
   window._fbPull = async function(){
     if(!window._db || !window._doc) return;
     try{
-      const { getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      window._fbMyLastTs = 0; // reset so we accept the incoming data
       const snap = await getDoc(window._doc);
       if(snap.exists()){
         const remote = snap.data();
         if(remote && remote.payload){
-          window._saveInProgress = false; // force accept
           const incoming = JSON.parse(remote.payload);
           window.S = incoming;
           try{ localStorage.setItem('atticus_l10_v5', remote.payload); }catch(e){}
@@ -847,14 +870,14 @@ function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
 function save(silent){
-  // Always save to localStorage as fallback
-  try{localStorage.setItem(SK,JSON.stringify(S));}catch(e){}
-  // Save to Firebase if connected
+  // Always write to localStorage as fallback
+  try{ localStorage.setItem(SK, JSON.stringify(S)); }catch(e){}
+  // Write to Firestore if connected
   if(window._fbReady && window._fbSave){
-    window._fbSave(S).then(function(ok){
+    window._fbSave(S, false).then(function(ok){
       if(!silent){ showSaved(); updateSyncTime(); }
     }).catch(function(e){
-      if(!silent) showSaved(); // still confirm local save
+      if(!silent) showSaved();
     });
   } else {
     if(!silent) showSaved();
