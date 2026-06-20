@@ -137,9 +137,11 @@ textarea{resize:vertical;min-height:62px}
       onSnapshot(ref, snap => {
         if(!snap.exists()){
           // First ever connection — push local data to Firestore
+          if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
           if(window.S && window._fbSave){
             window._fbSave(window.S);
           }
+          if(typeof renderAll === 'function') renderAll();
           return;
         }
 
@@ -157,12 +159,15 @@ textarea{resize:vertical;min-height:62px}
           const incoming = JSON.parse(remote.payload);
           window.S = incoming;
           try{ localStorage.setItem('atticus_l10_v5', remote.payload); }catch(e){}
+          // Clear loading overlay and timeout on first successful load
+          if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
           if(typeof renderAll === 'function') renderAll();
           showFbStatus('synced');
           updateSyncTime();
         } catch(e){
           console.error('Failed to parse remote payload:', e);
           showFbStatus('sync error — bad data');
+          if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
         }
 
       }, err => {
@@ -271,6 +276,15 @@ textarea{resize:vertical;min-height:62px}
   <button class="btn btn-sm" onclick="openModal('modal-fb-setup')" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);font-size:11px">⚙ Config</button>
   <button class="btn btn-sm" onclick="exportJSON()" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);font-size:11px"><i class="ti ti-download"></i> Export</button>
 </div>
+
+<!-- Loading overlay — shown while waiting for Firebase on page load -->
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,40,20,0.82);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.2);border-top-color:#41B93C;border-radius:50%;animation:spin 0.9s linear infinite"></div>
+  <div style="color:#fff;font-size:15px;font-weight:600">Loading latest data from Firebase...</div>
+  <div style="color:rgba(255,255,255,0.6);font-size:12px">Syncing with your team's Firestore database</div>
+  <button onclick="hideLoadingOverlay();try{var d=localStorage.getItem('atticus_l10_v5');if(d)S=JSON.parse(d);}catch(e){S=defState();}renderAll();showFbStatus('showing local data');" style="margin-top:8px;padding:8px 20px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;font-size:13px">Skip — show local data</button>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
 <div class="timer-bar">
   <i class="ti ti-clock"></i> Timer: <span id="timer-display">0:00</span>
@@ -847,34 +861,74 @@ function save(silent){
   }
 }
 function load(){
-  // Load from localStorage first (immediate)
-  try{
-    const d=localStorage.getItem(SK);
-    if(d) S=JSON.parse(d);
-    else S=defState();
-  }catch(e){S=defState();}
-  // Firebase real-time listener will update S and re-render when it fires
-  renderAll();
-  // Try to load saved Firebase config and auto-connect
-  // Auto-reconnect: retry up to 5 times with 1s intervals for module to load
-  try{
-    const savedCfg = localStorage.getItem('atticus_fb_cfg');
-    if(savedCfg){
-      const cfg = JSON.parse(savedCfg);
-      var attempts = 0;
-      var tryConnect = function(){
-        attempts++;
-        if(window._fbInit){
+  const savedCfg = localStorage.getItem('atticus_fb_cfg');
+
+  if(savedCfg){
+    // Firebase config exists — show loading overlay, wait for Firebase to load
+    // Do NOT render localStorage data first — Firebase is the source of truth
+    S = defState(); // blank slate to avoid stale local data flash
+    showLoadingOverlay(true);
+
+    var attempts = 0;
+    var tryConnect = function(){
+      attempts++;
+      if(window._fbInit){
+        try{
+          var cfg = JSON.parse(savedCfg);
           window._fbInit(cfg);
-        } else if(attempts < 8){
-          setTimeout(tryConnect, 800);
-        } else {
-          console.warn('Firebase module did not load after 8 attempts');
+          // Firebase onSnapshot will call renderAll() when data arrives
+          // Set a timeout fallback — if Firebase doesn't respond in 8s, fall back to localStorage
+          window._fbLoadTimeout = setTimeout(function(){
+            hideLoadingOverlay();
+            showLoadingOverlay(false);
+            // Fallback: load from localStorage
+            try{
+              var d = localStorage.getItem(SK);
+              if(d) S = JSON.parse(d);
+              else S = defState();
+            }catch(e){ S = defState(); }
+            renderAll();
+            showFbStatus('timeout — showing local data');
+          }, 8000);
+        } catch(e){
+          console.error('Auto-reconnect error:', e);
+          hideLoadingOverlay();
+          S = defState();
+          renderAll();
         }
-      };
-      setTimeout(tryConnect, 500);
-    }
-  }catch(e){ console.error('Auto-reconnect error:', e); }
+      } else if(attempts < 10){
+        setTimeout(tryConnect, 600);
+      } else {
+        // Firebase SDK never loaded — fall back to localStorage
+        hideLoadingOverlay();
+        try{
+          var d = localStorage.getItem(SK);
+          if(d) S = JSON.parse(d);
+          else S = defState();
+        }catch(e){ S = defState(); }
+        renderAll();
+      }
+    };
+    setTimeout(tryConnect, 400);
+
+  } else {
+    // No Firebase config — just load from localStorage immediately
+    try{
+      var d = localStorage.getItem(SK);
+      if(d) S = JSON.parse(d);
+      else S = defState();
+    }catch(e){ S = defState(); }
+    renderAll();
+  }
+}
+
+function showLoadingOverlay(show){
+  var el = document.getElementById('loading-overlay');
+  if(el) el.style.display = show ? 'flex' : 'none';
+}
+function hideLoadingOverlay(){
+  showLoadingOverlay(false);
+  if(window._fbLoadTimeout){ clearTimeout(window._fbLoadTimeout); window._fbLoadTimeout=null; }
 }
 function showSaved(){const el=document.getElementById('save-ind');el.textContent='✓ Saved';el.style.opacity='1';setTimeout(()=>{el.style.opacity='0.5';},2000);}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
