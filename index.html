@@ -127,44 +127,41 @@ textarea{resize:vertical;min-height:62px}
       const ref = doc(db, 'atticus_l10', 'state');
       window._db  = db;
       window._doc = ref;
+      window._fbReady = true;
 
-      // ── STEP 1: Direct read on page load (getDoc) ─────────────────────
-      // This is guaranteed to return current Firestore data immediately.
-      // Unlike onSnapshot, it does not depend on event timing or listeners.
-      console.log('[FB] Reading from Firestore...');
-      const snap = await getDoc(ref);
+      document.getElementById('fb-setup-banner').style.display = 'none';
+      document.getElementById('fb-status-bar').style.display  = 'flex';
+      showFbStatus('connected');
+      console.log('[FB] Connected to Firestore.');
 
-      if(snap.exists() && snap.data().payload){
-        try{
-          const incoming = JSON.parse(snap.data().payload);
-          window.S = incoming;
-          // Sync to localStorage too
+      // STEP 1: Direct read on connect — guaranteed current data
+      try{
+        const snap = await getDoc(ref);
+        if(snap.exists() && snap.data() && snap.data().payload){
+          const remote = JSON.parse(snap.data().payload);
+          window.S = remote;
           try{ localStorage.setItem('atticus_l10_v5', snap.data().payload); }catch(e){}
-          console.log('[FB] Loaded from Firestore. Todos:', (incoming.todos||[]).length);
-        } catch(e){
-          console.error('[FB] Parse error on load:', e);
-          // Fall back to localStorage if Firestore payload is corrupt
-          var d = localStorage.getItem('atticus_l10_v5');
-          window.S = d ? JSON.parse(d) : defState();
+          if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
+          if(typeof renderAll === 'function') renderAll();
+          showFbStatus('synced');
+          updateSyncTime();
+          console.log('[FB] Loaded from Firestore. Todos:', (remote.todos||[]).length);
+        } else {
+          // Nothing in Firestore — push our local data up
+          console.log('[FB] No Firestore data. Pushing local data up.');
+          if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
+          await window._fbSave(window.S);
         }
-      } else {
-        // Nothing in Firestore yet — use localStorage or defState
-        console.log('[FB] No Firestore document yet. Using local data.');
-        var d = localStorage.getItem('atticus_l10_v5');
-        window.S = d ? JSON.parse(d) : defState();
+      } catch(e){
+        console.error('[FB] Initial read error:', e);
+        if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
       }
 
-      // Render immediately after direct read
-      if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
-      if(typeof renderAll === 'function') renderAll();
-
-      // ── STEP 2: Set up onSnapshot for LIVE teammate updates ───────────
-      // This only fires for changes AFTER our initial load.
-      // We ignore the first snapshot (it's the same data we just loaded).
-      var firstSnapshot = true;
+      // STEP 2: Live listener for teammate updates (skip first echo)
+      var firstSnap = true;
       onSnapshot(ref, snap => {
-        if(firstSnapshot){ firstSnapshot = false; return; }
-        if(!snap.exists() || !snap.data().payload) return;
+        if(firstSnap){ firstSnap = false; return; }
+        if(!snap.exists() || !snap.data() || !snap.data().payload) return;
         try{
           const incoming = JSON.parse(snap.data().payload);
           window.S = incoming;
@@ -172,35 +169,26 @@ textarea{resize:vertical;min-height:62px}
           if(typeof renderAll === 'function') renderAll();
           showFbStatus('synced');
           updateSyncTime();
-          console.log('[FB] Live update received from teammate.');
-        } catch(e){
-          console.error('[FB] Live update parse error:', e);
-        }
+          console.log('[FB] Live update from teammate received.');
+        } catch(e){ console.error('[FB] Live update parse error:', e); }
       }, err => {
         console.error('[FB] onSnapshot error:', err);
         showFbStatus('listener error: ' + err.code);
       });
 
-      window._fbReady = true;
-      document.getElementById('fb-setup-banner').style.display = 'none';
-      document.getElementById('fb-status-bar').style.display  = 'flex';
-      showFbStatus('synced');
-      updateSyncTime();
+      // Auto-pull every 60 seconds as extra safety net
+      clearInterval(window._fbPollInterval);
+      window._fbPollInterval = setInterval(function(){
+        if(window._fbPull) window._fbPull();
+      }, 60000);
 
     } catch(e){
       console.error('[FB] Init error:', e);
       showFbStatus('error: ' + e.message);
       if(typeof hideLoadingOverlay === 'function') hideLoadingOverlay();
-      // Fall back to localStorage on any Firebase error
-      try{
-        var d = localStorage.getItem('atticus_l10_v5');
-        window.S = d ? JSON.parse(d) : defState();
-      }catch(ex){ window.S = defState(); }
-      if(typeof renderAll === 'function') renderAll();
     }
   };
 
-  // ── Save to Firestore ───────────────────────────────────────────────────
   window._fbSave = async function(payload){
     if(!window._db || !window._doc) return false;
     try{
@@ -217,20 +205,18 @@ textarea{resize:vertical;min-height:62px}
     }
   };
 
-  // ── Manual force-pull ──────────────────────────────────────────────────
   window._fbPull = async function(){
     if(!window._db || !window._doc) return;
     try{
-      console.log('[FB] Manual pull...');
       const snap = await getDoc(window._doc);
-      if(snap.exists() && snap.data().payload){
+      if(snap.exists() && snap.data() && snap.data().payload){
         const incoming = JSON.parse(snap.data().payload);
         window.S = incoming;
         try{ localStorage.setItem('atticus_l10_v5', snap.data().payload); }catch(e){}
         if(typeof renderAll === 'function') renderAll();
         showFbStatus('synced');
         updateSyncTime();
-        console.log('[FB] Manual pull complete.');
+        console.log('[FB] Pull complete.');
       }
     } catch(e){
       console.error('[FB] Pull error:', e);
@@ -660,7 +646,7 @@ function doUndo(){
 function defState(){return{
   bus:[
     {name:'Finance',kpis:[
-      {n:'Collection Efficiency',t:'≥80%',d:'No. of invoices collected (incl. w/ confirmation/remittance) / total invoice for collection EOM',val:'',st:'not-started'},
+      {n:'Collection Efficiency',t:'≥80%',d:'No. of invoices collected (incl. w/ confirmation/remittance advice) / total invoice for collection EOM',val:'',st:'not-started'},
       {n:'Ave. Time to Invoice',t:'≤5 days',d:'Ave. days from trigger to invoice issuance',val:'',st:'not-started'},
       {n:'Invoice Revisions',t:'<3/mo',d:'No. of revised invoices per month',val:'',st:'not-started'},
       {n:'Cash Flow Ratio',t:'<100%',d:'Monthly Inflow / Outflow EOM',val:'',st:'not-started'},
@@ -683,102 +669,128 @@ function defState(){return{
     ]}
   ],
   weekLogs:[],
+  vision:[
+    {team:"Finance and Admin",statement:"To serve as a trusted strategic partner driving sustainable growth by ensuring financial integrity, maximizing operational efficiency, and delivering actionable insights that enable sound business decisions and reinforce our position as a leading offshore managed services provider."},
+    {team:"IT",statement:"To become a trusted IT Business Partner — an elite team that not only supports, but advises, innovates, and collaborates as strategic consultants across the organization."},
+    {team:"Operations Support (Finance & Admin, IT & Compliance)",statement:"To be a trusted strategic partner that strengthens the organization\u2019s foundation by ensuring financial integrity, operational & governance excellence, and technology innovation — enabling scalable, data-driven, and sustainable growth as a leading offshore managed services provider."}
+  ],
   rocks:[
-    {dept:'Finance',name:'Rock 1 · Predictive Client & HC Forecasting Engine',owner:'Mond',deadline:'2026-06-30',status:'on-track',notes:'Milestone 4 done.',archived:false,milestones:[
+    {dept:'Finance',name:'Rock 1 \u00b7 Predictive Client & HC Forecasting Engine',owner:'Mond',deadline:'2026-06-30',status:'on-track',notes:'M4 done.',archived:false,milestones:[
       {id:'M1',text:'Define Forecasting Inputs & Data Sources',responsible:'Finance',accountable:'Mond',deadline:'2026-01-19',status:'done',notes:''},
       {id:'1.1',text:'Establish forecasting probability criteria (High/Mid/Low)',responsible:'Finance',accountable:'Mond',deadline:'2026-01-19',status:'done',notes:''},
       {id:'1.2',text:'Finalize client, sales, and HC data fields',responsible:'Finance',accountable:'Mond',deadline:'2026-01-19',status:'done',notes:''},
       {id:'1.3',text:'Align with Sales, Ops, Finance on definitions and assign POCs',responsible:'Finance',accountable:'Mond',deadline:'2026-02-02',status:'done',notes:''},
-      {id:'M2',text:'Build Forecasting Model & Template',responsible:'Finance',accountable:'Mond',deadline:'2026-01-30',status:'ongoing',notes:''},
+      {id:'M2',text:'Build Forecasting Model & Template',responsible:'Finance',accountable:'Mond',deadline:'2026-01-30',status:'ongoing',notes:'Partially ongoing'},
       {id:'2.1',text:'Create standardized monthly/weekly forecasting template',responsible:'Finance',accountable:'Mond',deadline:'2026-01-30',status:'ongoing',notes:''},
-      {id:'M3',text:'Validation & Scenario Testing',responsible:'Finance',accountable:'Mond',deadline:'2026-02-09',status:'ongoing',notes:''},
+      {id:'M3',text:'Validation & Scenario Testing',responsible:'Finance',accountable:'Mond',deadline:'2026-02-09',status:'not-started',notes:'No native integration; need middleware'},
       {id:'3.1',text:'Stress test with 3 scenarios (high, mid, low)',responsible:'Finance',accountable:'Mond',deadline:'',status:'not-started',notes:''},
       {id:'3.2',text:'Identify risks, constraints, and operational bottlenecks',responsible:'Finance',accountable:'Mond',deadline:'',status:'not-started',notes:''},
       {id:'M4',text:'HubSpot to Finance Dashboard Integration Assessment',responsible:'Finance',accountable:'Mond',deadline:'2026-03-20',status:'done',notes:''}
     ]},
-    {dept:'Finance',name:'Rock 2 · Client Profitability Reporting',owner:'MJ',deadline:'2026-06-25',status:'ongoing',notes:'M6 ongoing (adj. Jun 25).',archived:false,milestones:[
+    {dept:'Finance',name:'Rock 2 \u00b7 Client Profitability Reporting',owner:'MJ',deadline:'2026-06-25',status:'ongoing',notes:'M6 ongoing (adj. Jun 25).',archived:false,milestones:[
       {id:'M1',text:'Define Client Profitability Framework & Decision Use',responsible:'Finance',accountable:'MJ',deadline:'2026-02-13',status:'done',notes:''},
       {id:'M2',text:'Clean and Structure Source Data (Xero)',responsible:'Finance',accountable:'MJ',deadline:'2026-02-27',status:'done',notes:''},
-      {id:'M3',text:'Build Profitability Calculation Model',responsible:'Finance',accountable:'MJ',deadline:'2026-04-17',status:'done',notes:''},
+      {id:'M3',text:'Build Profitability Calculation Model',responsible:'Finance',accountable:'MJ',deadline:'2026-04-17',status:'stuck',notes:'Stuck then resolved'},
       {id:'M4',text:'Automate Reporting & Dashboard Creation',responsible:'Finance',accountable:'MJ',deadline:'2026-04-17',status:'done',notes:''},
-      {id:'M5',text:'Validate, Stress Test & Refine Insights',responsible:'Finance',accountable:'MJ',deadline:'2026-04-24',status:'done',notes:''},
-      {id:'M6',text:'Client Profitability Reporting Live & Operational',responsible:'Finance',accountable:'MJ',deadline:'2026-06-25',status:'ongoing',notes:'Adj. Jun 25'}
+      {id:'M5',text:'Validate, Stress Test & Refine Insights',responsible:'Finance',accountable:'MJ',deadline:'2026-05-15',status:'done',notes:''},
+      {id:'M6',text:'Client Profitability Reporting Live & Operational',responsible:'Finance',accountable:'MJ',deadline:'2026-06-12',status:'ongoing',notes:'Adj. Jun 25'}
     ]},
-    {dept:'Finance',name:'Rock 3 · Web-Based Quote Calculator (Project QuoteRight)',owner:'MJ/Marlou',deadline:'2026-07-18',status:'ongoing',notes:'M3.3 ongoing, M4–5 in progress.',archived:false,milestones:[
-      {id:'M1',text:'Discovery & Planning',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-03-28',status:'done',notes:''},
-      {id:'M2',text:'Design Completed',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-04-18',status:'done',notes:''},
-      {id:'M3',text:'Core Logic — M3.1–3.2 Done, M3.3 Ongoing',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-05-16',status:'ongoing',notes:''},
-      {id:'M4',text:'Integration & Optimization',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-06-13',status:'ongoing',notes:''},
-      {id:'M5',text:'Final Testing & Revisions',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-07-04',status:'ongoing',notes:''},
-      {id:'M6',text:'Deployment & Handover',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-07-18',status:'not-started',notes:''}
+    {dept:'Finance',name:'Rock 3 \u00b7 Web-Based Quote Calculator (Project QuoteRight)',owner:'MJ/Marlou',deadline:'2026-06-30',status:'ongoing',notes:'M3.3 ongoing, M4-5 in progress.',archived:false,milestones:[
+      {id:'M1',text:'Discovery & Planning',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-04-01',status:'done',notes:''},
+      {id:'M2',text:'Design Completed',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-04-29',status:'done',notes:''},
+      {id:'M3',text:'Core Logic',responsible:'Finance',accountable:'MJ/Marlou',deadline:'2026-06-09',status:'ongoing',notes:'3.1-3.2 Done, 3.3 Ongoing'},
+      {id:'3.1',text:'Implement pricing formulas and conditions',responsible:'Finance',accountable:'Marlou',deadline:'2026-06-09',status:'done',notes:''},
+      {id:'3.2',text:'Establish dynamic field behavior and dependencies',responsible:'Finance',accountable:'Marlou',deadline:'2026-06-09',status:'done',notes:''},
+      {id:'3.3',text:'Test all calculation scenarios',responsible:'Finance',accountable:'Marlou',deadline:'2026-06-15',status:'ongoing',notes:''},
+      {id:'M4',text:'Integration & Optimization',responsible:'Finance',accountable:'Josiah/Jorynn',deadline:'2026-05-27',status:'ongoing',notes:''},
+      {id:'M5',text:'Final Testing & Revisions',responsible:'Finance',accountable:'Josiah/Jorynn',deadline:'2026-06-15',status:'ongoing',notes:''},
+      {id:'M6',text:'Deployment & Handover',responsible:'Finance',accountable:'Josiah/Jorynn',deadline:'2026-06-30',status:'not-started',notes:''}
     ]},
-    {dept:'Finance',name:'Rock 4 · AI-Powered Balance Sheet Reconciliation',owner:'MJ',deadline:'2026-06-30',status:'ongoing',notes:'M4 UAT ongoing, M5 not yet started.',archived:false,milestones:[
-      {id:'M1',text:'Define Scope & Standardize Data',responsible:'Finance',accountable:'MJ',deadline:'2026-03-07',status:'done',notes:''},
-      {id:'M2',text:'Build AI Prompt & Matching Logic',responsible:'Finance',accountable:'MJ',deadline:'2026-04-04',status:'done',notes:''},
-      {id:'M3',text:'Automate Reconciliation Workflow',responsible:'Finance',accountable:'MJ',deadline:'2026-05-02',status:'done',notes:''},
-      {id:'M4',text:'UAT & Parallel Testing',responsible:'Finance',accountable:'MJ',deadline:'2026-05-30',status:'ongoing',notes:''},
+    {dept:'Finance',name:'Rock 4 \u00b7 AI-Powered Balance Sheet Reconciliation',owner:'MJ',deadline:'2026-06-30',status:'ongoing',notes:'M4 UAT ongoing, M5 not yet started.',archived:false,milestones:[
+      {id:'M1',text:'Define Scope & Standardize Data',responsible:'Finance',accountable:'MJ',deadline:'2026-04-22',status:'done',notes:''},
+      {id:'M2',text:'Build AI Prompt & Matching Logic',responsible:'Finance',accountable:'MJ',deadline:'2026-05-06',status:'done',notes:''},
+      {id:'M3',text:'Automate Reconciliation Workflow',responsible:'Finance',accountable:'MJ',deadline:'2026-06-17',status:'done',notes:''},
+      {id:'M4',text:'UAT & Parallel Testing',responsible:'Finance',accountable:'MJ',deadline:'2026-06-24',status:'ongoing',notes:''},
+      {id:'4.1',text:'Run AI reconciliation in parallel with manual process',responsible:'Finance',accountable:'MJ',deadline:'2026-06-24',status:'ongoing',notes:''},
+      {id:'4.2',text:'Compare AI vs manual accuracy and identify mismatches',responsible:'Finance',accountable:'MJ',deadline:'2026-06-24',status:'ongoing',notes:''},
+      {id:'4.3',text:'Refine prompts and matching rules based on testing',responsible:'Finance',accountable:'MJ',deadline:'2026-06-24',status:'ongoing',notes:''},
+      {id:'4.4',text:'Finalize acceptance criteria and secure Finance sign-off',responsible:'Finance',accountable:'MJ',deadline:'2026-06-24',status:'ongoing',notes:''},
       {id:'M5',text:'Live Implementation & Monitoring',responsible:'Finance',accountable:'MJ',deadline:'2026-06-30',status:'not-started',notes:''}
     ]},
-    {dept:'Admin',name:'Rock 1 · Automated SLA Monitoring & Ticketing (Freshservice)',owner:'Shanne',deadline:'2026-06-30',status:'ongoing',notes:'M4 testing ongoing, M5 not started.',archived:false,milestones:[
-      {id:'M1',text:'Testing of Freshservice',responsible:'Admin',accountable:'Shanne',deadline:'2026-02-28',status:'done',notes:''},
-      {id:'M2',text:'Set Rules & Logic',responsible:'Admin',accountable:'Shanne',deadline:'2026-03-28',status:'done',notes:''},
-      {id:'M3',text:'Build Request Portal',responsible:'Admin',accountable:'Shanne',deadline:'2026-04-25',status:'done',notes:''},
-      {id:'M3b',text:'Automate the Work',responsible:'Admin',accountable:'Shanne',deadline:'2026-05-23',status:'done',notes:''},
-      {id:'M4',text:'Test & Dashboard',responsible:'Admin',accountable:'Shanne',deadline:'2026-06-20',status:'ongoing',notes:''},
-      {id:'M5',text:'Launch & Training',responsible:'Admin',accountable:'Shanne',deadline:'2026-06-30',status:'not-started',notes:''}
+    {dept:'Admin',name:'Rock 1 \u00b7 Automated SLA Monitoring & Ticketing (Freshservice)',owner:'Shanne',deadline:'2026-06-25',status:'ongoing',notes:'M4 testing ongoing, M5 not started.',archived:false,milestones:[
+      {id:'M1',text:'Testing of Freshservice',responsible:'Admin',accountable:'Shanne',deadline:'2026-04-29',status:'done',notes:''},
+      {id:'M2',text:'Set Rules & Logic',responsible:'Admin',accountable:'Shanne',deadline:'2026-05-13',status:'done',notes:''},
+      {id:'M3',text:'Build Request Portal',responsible:'Admin',accountable:'Shanne',deadline:'2026-05-27',status:'done',notes:''},
+      {id:'M3b',text:'Automate the Work',responsible:'Admin',accountable:'Shanne',deadline:'2026-06-10',status:'done',notes:''},
+      {id:'M4',text:'Test & Dashboard',responsible:'Admin',accountable:'Shanne',deadline:'2026-06-24',status:'ongoing',notes:''},
+      {id:'4.1',text:'Run a small test with one team to find bugs',responsible:'Admin',accountable:'Shanne',deadline:'2026-06-24',status:'ongoing',notes:''},
+      {id:'4.2',text:'Build scoreboard (% on time, avg time, heaviest workload)',responsible:'Admin',accountable:'Shanne',deadline:'2026-06-24',status:'not-started',notes:''},
+      {id:'M5',text:'Launch & Training',responsible:'Admin',accountable:'Shanne',deadline:'2026-06-25',status:'not-started',notes:''}
     ]},
-    {dept:'Admin',name:'Rock 2 · EasyPOS Acquisition & Integration (Admin/Compliance)',owner:'Mond',deadline:'2026-09-30',status:'stuck',notes:'M2.2 stuck — Bryce & Alex commitment pending.',archived:false,milestones:[
-      {id:'M1',text:'Agreement with EasyPOS & Oolio',responsible:'Admin/Compliance',accountable:'Mond',deadline:'2026-01-31',status:'done',notes:''},
-      {id:'M2',text:'Legal papers via Acube',responsible:'Admin/Compliance',accountable:'Mond',deadline:'2026-03-31',status:'done',notes:''},
-      {id:'M2.1',text:'Submission to sellers',responsible:'Admin/Compliance',accountable:'Mond',deadline:'2026-04-15',status:'done',notes:''},
-      {id:'M2.2',text:'Signing & notarization',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'stuck',notes:'Bryce & Alex commitment pending'},
-      {id:'M3',text:'BIR eCAR submission',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'not-started',notes:''},
-      {id:'M4',text:'SBMA submission',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'not-started',notes:''},
-      {id:'M5',text:'Atticus-EasyPOS merger',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'not-started',notes:''},
-      {id:'M6',text:'SBMA sublease assignment',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'ongoing',notes:''}
+    {dept:'Admin',name:'Rock 2 \u00b7 EasyPOS Acquisition & Integration (Admin/Compliance)',owner:'Mond',deadline:'2026-09-30',status:'stuck',notes:'M2.2 stuck — Bryce & Alex commitment pending.',archived:false,milestones:[
+      {id:'M1',text:'Agreement with EasyPOS & Oolio',responsible:'Admin/Compliance',accountable:'Mond',deadline:'2026-02-11',status:'done',notes:''},
+      {id:'M2',text:'Legal papers via Acube',responsible:'Admin/Compliance',accountable:'Mond',deadline:'2026-03-04',status:'done',notes:''},
+      {id:'M2.1',text:'Submission of draft papers to sellers for review',responsible:'Admin/Compliance',accountable:'Mond',deadline:'2026-04-21',status:'done',notes:''},
+      {id:'M2.2',text:'Signing and notarization of final transfer agreement',responsible:'Admin/Compliance',accountable:'Mond',deadline:'2026-05-26',status:'stuck',notes:'Commitment of Bryce and Alex pending'},
+      {id:'M3',text:'BIR eCAR submission',responsible:'Admin/Compliance',accountable:'Mond',deadline:'2026-06-01',status:'not-started',notes:''},
+      {id:'M4',text:'SBMA submission and amendment of records',responsible:'Admin/Compliance',accountable:'Mond',deadline:'2026-07-15',status:'not-started',notes:'4-6 weeks timetable'},
+      {id:'M5',text:'Merging of Atticus & EasyPOS (Atticus as surviving entity)',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'not-started',notes:''},
+      {id:'M6',text:'Assignment of Sublease Agreement to SBMA',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'ongoing',notes:''},
+      {id:'M6.1',text:'EasyPOS issuance of endorsement letter to SBMA',responsible:'Admin/Compliance',accountable:'Mond',deadline:'',status:'ongoing',notes:''},
+      {id:'M6.2',text:'Admin to liaise with FYR for SBMA submission documents',responsible:'Admin/Compliance',accountable:'Shanne',deadline:'',status:'ongoing',notes:''}
     ]},
-    {dept:'Compliance',name:'Rock 1 · Compliance Charter & Setup',owner:'Jam',deadline:'2026-06-30',status:'ongoing',notes:'M1.1 done, M2 not started.',archived:false,milestones:[
-      {id:'M1',text:'Organize the Basics (Charter & Scope)',responsible:'Compliance',accountable:'Jam',deadline:'2026-03-31',status:'ongoing',notes:'Charter Done, Scope Done'},
-      {id:'M2',text:'Internal Health Check (Compliance Audit)',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-30',status:'not-started',notes:''},
+    {dept:'Compliance',name:'Rock 1 \u00b7 Compliance Charter & Setup',owner:'Jam',deadline:'2026-06-30',status:'ongoing',notes:'M1 done, M2 not started.',archived:false,milestones:[
+      {id:'M1',text:'Organize the Basics (Charter & Scope)',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-15',status:'ongoing',notes:'Charter Done, Scope Done'},
+      {id:'1.1',text:'Write Compliance Charter',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-15',status:'done',notes:''},
+      {id:'1.2',text:'Define Compliance Scope & Coverage',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-15',status:'done',notes:''},
+      {id:'M2',text:'Internal Health Check (Compliance Audit)',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-29',status:'not-started',notes:''},
+      {id:'2.1',text:'Contract Risk Spot Check (top 5-10 client contracts)',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-29',status:'not-started',notes:''},
+      {id:'2.2',text:'Data Privacy Practices Review',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-12',status:'not-started',notes:''},
+      {id:'2.3',text:'Internal Policy Inventory',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-26',status:'not-started',notes:''},
       {id:'M3',text:'Build Risk Registry Template',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-30',status:'ongoing',notes:''}
     ]},
-    {dept:'Compliance',name:'Rock 2 · Strategic Risk Management Initiative',owner:'Jam',deadline:'2026-06-30',status:'ongoing',notes:'Risk repo built, M3–4 not started.',archived:false,milestones:[
-      {id:'M1',text:'Compile Issues from All BUs',responsible:'Compliance',accountable:'Jam',deadline:'2026-04-30',status:'ongoing',notes:''},
-      {id:'M2',text:'Build Risk Repository',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-15',status:'done',notes:''},
-      {id:'M3',text:'Compliance Insights & Review',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-15',status:'not-started',notes:''},
-      {id:'M4',text:'Release & Execution Handoff',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-25',status:'not-started',notes:''},
-      {id:'M5',text:'Release to BUs',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-30',status:'not-started',notes:''}
+    {dept:'Compliance',name:'Rock 2 \u00b7 Strategic Risk Management Initiative',owner:'Jam',deadline:'2026-06-30',status:'ongoing',notes:'Risk repo built, M3-4 not started.',archived:false,milestones:[
+      {id:'M1',text:'Compile Issues from All BUs',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-15',status:'ongoing',notes:''},
+      {id:'1.1',text:'Data Gathering',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-15',status:'ongoing',notes:''},
+      {id:'1.2',text:'Interviews / Follow-Up',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-22',status:'ongoing',notes:''},
+      {id:'M2',text:'Build Risk Repository',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-29',status:'done',notes:''},
+      {id:'2.1',text:'Design the Risk Log Template',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-29',status:'ongoing',notes:''},
+      {id:'2.2',text:'Populate and Categorize All Risks',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-12',status:'ongoing',notes:''},
+      {id:'M3',text:'Compliance Insights & Review',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-19',status:'not-started',notes:''},
+      {id:'M4',text:'Release & Execution Handoff',responsible:'Compliance',accountable:'Mond',deadline:'2026-06-30',status:'not-started',notes:''},
+      {id:'M5',text:'Release to BUs',responsible:'BUs',accountable:'Jam',deadline:'2026-06-30',status:'not-started',notes:''}
     ]},
-    {dept:'Compliance',name:'Rock 3 · Client Contract Integrity & Audit',owner:'Jam',deadline:'2026-06-30',status:'ongoing',notes:'M1–2 ongoing, M3–5 not started.',archived:false,milestones:[
-      {id:'M1',text:'Inventory & Completeness Check',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-15',status:'ongoing',notes:''},
-      {id:'M2',text:'Document & Clause Review',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-30',status:'ongoing',notes:''},
-      {id:'M3',text:'Risk Assessment Per Client',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-13',status:'not-started',notes:''},
-      {id:'M4',text:'Finalize findings & endorse to leadership',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-20',status:'not-started',notes:''},
-      {id:'M5',text:'Final completion report',responsible:'Compliance',accountable:'Jam',deadline:'2026-06-30',status:'not-started',notes:''}
+    {dept:'Compliance',name:'Rock 3 \u00b7 Client Contract Integrity & Audit',owner:'Jam',deadline:'2026-06-30',status:'ongoing',notes:'M1-2 ongoing, M3-5 not started.',archived:false,milestones:[
+      {id:'M1',text:'Inventory & Completeness Check',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-29',status:'ongoing',notes:''},
+      {id:'M1.1',text:'Pull All Existing MSAs/SOWs',responsible:'Compliance',accountable:'Jam',deadline:'2026-05-29',status:'done',notes:''},
+      {id:'M2',text:'Document & Clause Review',responsible:'Compliance',accountable:'Jam',deadline:'',status:'not-started',notes:'Review prior audit'},
+      {id:'M3',text:'Risk Assessment Per Client',responsible:'Compliance',accountable:'Jam',deadline:'',status:'not-started',notes:''},
+      {id:'M4',text:'Finalize findings & endorse to leadership',responsible:'Compliance',accountable:'Jam',deadline:'',status:'not-started',notes:''},
+      {id:'M5',text:'Final completion report',responsible:'Compliance',accountable:'Jam',deadline:'',status:'not-started',notes:''}
     ]}
-  ],
-  vision:[
-    {team:"Finance and Admin",statement:"To serve as a trusted strategic partner driving sustainable growth by ensuring financial integrity, maximizing operational efficiency, and delivering actionable insights that enable sound business decisions and reinforce our position as a leading offshore managed services provider."},
-    {team:"IT",statement:"To become a trusted IT Business Partner — an elite team that not only supports, but advises, innovates, and collaborates as strategic consultants across the organization."},
-    {team:"Operations Support (Finance & Admin, IT & Compliance)",statement:"To be a trusted strategic partner that strengthens the organization's foundation by ensuring financial integrity, operational & governance excellence, and technology innovation — enabling scalable, data-driven, and sustainable growth as a leading offshore managed services provider."}
   ],
   feedback:[
     {type:'news',issue:'no',source:'Finance',text:"Business Review AI Decks appreciated by Miggy & Lester in last week's session",by:'Mond',date:'2026-02-25',status:'open',archived:false},
     {type:'news',issue:'no',source:'Admin',text:'US Embassy PIP Reaccreditation Approved',by:'Shanne',date:'2026-06-02',status:'open',archived:false},
-    {type:'news',issue:'no',source:'All',text:"Positive feedback from Jef — Finance & Admin L10 is well-structured, team navigates without prompting",by:'Mond',date:'2026-04-28',status:'open',archived:false}
+    {type:'news',issue:'no',source:'All',text:"Positive feedback from Jef — Finance & Admin L10 is well-structured, team navigates without prompting",by:'Mond',date:'2026-04-28',status:'open',archived:false},
+    {type:'win',issue:'no',source:'Admin',text:"Shanne's promotion as Admin Officer",by:'Mond',date:'2026-04-01',status:'open',archived:false},
+    {type:'news',issue:'no',source:'Finance',text:"Jorynn will take over Marlou's role as part of her career development",by:'Mond',date:'2026-06-03',status:'open',archived:false},
+    {type:'challenge',issue:'yes',source:'Finance',text:'How do we improve our way of reporting invoice overdues?',by:'Mond',date:'2026-05-20',status:'open',archived:false},
+    {type:'challenge',issue:'yes',source:'Finance',text:'Challenges Anticipated: Implementing Segregation of Duties at current team size',by:'Mond',date:'2026-06-09',status:'open',archived:false},
+    {type:'challenge',issue:'yes',source:'Finance',text:'Challenges Anticipated: Cross-stakeholder document coordination',by:'Mond',date:'2026-06-09',status:'open',archived:false}
   ],
   todos:[
     {area:'Finance',text:'Client payment guide',poc:'Jam',help:'Josiah, Marlou',due:'',adjDue:'',notes:'',status:'ongoing',archived:false},
     {area:'Finance',text:'Assess old outstanding invoices for write-off (90 days+)',poc:'MJ',help:'Josiah, Marlou',due:'',adjDue:'',notes:'90 days and up',status:'ongoing',archived:false},
     {area:'Finance',text:'Credit Card payment (Stripe/Payoneer) + MSA terms review',poc:'Jorynn/Jam',help:'Josiah',due:'2026-06-24',adjDue:'',notes:'1. Step-by-step guide in Stripe 2. Revisit MSA terms for consent to auto-charge',status:'ongoing',archived:false},
-    {area:'Finance',text:'Converge for Bepoz — outstanding balance (billable or internal?)',poc:'',help:'',due:'',adjDue:'',notes:'',status:'ongoing',archived:false},
+    {area:'Finance',text:'Converge for Bepoz — outstanding balance (billable or internal?)',poc:'Jorynn',help:'',due:'',adjDue:'',notes:'',status:'ongoing',archived:false},
     {area:'Finance',text:'Set up discussion with CSM/BP: Client Profitability Reporting (Rock 2)',poc:'MJ',help:'',due:'',adjDue:'',notes:'',status:'ongoing',archived:false},
     {area:'Finance',text:'Discuss with HR re: SSS, Reimbursements, Final Pay, ER Share Data',poc:'Jorynn',help:'',due:'',adjDue:'',notes:'',status:'ongoing',archived:false},
     {area:'Admin',text:'Business Permit Renewals — Strata & St. Francis',poc:'Shanne/Angelica',help:'Sharmaine, Tere, Dona',due:'2026-06-17',adjDue:'',notes:'June 17 — SFS Branch BP Ongoing. SFS Fire Cert Ongoing. Atticus Main Fire Cert Ongoing.',status:'ongoing',archived:false},
-    {area:'Admin',text:'Anvaya — create agreement & inventory for internal guests',poc:'Shanne',help:'Mitzi and Janey',due:'2026-06-05',adjDue:'',notes:'Inventory and documentation of existing furniture and other items.',status:'ongoing',archived:false},
+    {area:'Admin',text:'Anvaya — create agreement & inventory for internal guests',poc:'Shanne',help:'Mitzi and Janey',due:'2026-06-08',adjDue:'',notes:'Inventory and documentation of existing furniture and other items.',status:'ongoing',archived:false},
     {area:'Admin',text:'Bepoz Rebate Application (Eastern)',poc:'Shanne',help:'Sam',due:'',adjDue:'',notes:'Coordinate with Sam who should process this.',status:'ongoing',archived:false},
     {area:'Admin',text:'Freshservice demo with Admin team before rollout',poc:'Shanne',help:'',due:'',adjDue:'',notes:'Demo before roll out.',status:'ongoing',archived:false},
-    {area:'All',text:'Training Feedback Form (Ms. Jef request)',poc:'All',help:'',due:'2026-06-05',adjDue:'',notes:'https://docs.google.com/forms/d/...',status:'ongoing',archived:false},
+    {area:'All',text:'Training Feedback Form (Ms. Jef request)',poc:'All',help:'',due:'2026-06-08',adjDue:'',notes:'',status:'ongoing',archived:false},
     {area:'All',text:'Revisit RACI Chart',poc:'',help:'',due:'',adjDue:'',notes:'',status:'ongoing',archived:false},
     {area:'All',text:'AI Process Initiative — individual assignments',poc:'Mond',help:'All',due:'',adjDue:'',notes:'',status:'ongoing',archived:false}
   ],
@@ -796,27 +808,39 @@ function defState(){return{
     {source:'Finance',text:'Exempt employees (Solar, Cloud Culture, Moss Adams) billed HP/ND',nextSteps:'Check historical data; update Quocal; add to post-audit SOP',poc:'Josiah'},
     {source:'S10',text:'Auto trial-to-subscription billing infrastructure',nextSteps:'Stripe/Payoneer setup; MSA consent-to-charge clause review',poc:'Jorynn/Jam'},
     {source:'Admin',text:'Issue with Eastern Telecom Internet — Bepoz',nextSteps:'IT to raise ticket to ETPI; reiterate service inclusion to Sam',poc:'Shanne/Mond'},
-    {source:'Finance',text:'Jackson James — billing/payment alignment',nextSteps:'Coordinate with HRBP/CS on timesheet portal; move to post-billing',poc:'Josiah'}
+    {source:'Finance',text:'Jackson James — billing/payment alignment',nextSteps:'Coordinate with HRBP/CS on timesheet portal; move to post-billing',poc:'Josiah'},
+    {source:'Finance',text:"GBP rates too close against trade conversion",nextSteps:'FX monitoring and rate review',poc:'Mond'},
+    {source:'Finance',text:'Lester CC full — unsuccessful payment of HubSpot',nextSteps:'All annual subs via bank transfer',poc:'MJ'},
+    {source:'Compliance',text:'Cognigy wrong MSA/SOW',nextSteps:'Contract review and correction',poc:'Mond'},
+    {source:'Finance',text:'Primary NP back and forth emails regarding payment',nextSteps:'Alignment on payment process',poc:'MJ'},
+    {source:'Finance',text:'Follow-up on INV-4286 — payment via Credit Card',nextSteps:'CC payment process established',poc:'MJ'},
+    {source:'Finance',text:'PR 26-116 purchasing of worktool — misalignment with CSM/Admin/Finance',nextSteps:'Alignment on procurement process',poc:'MJ'},
+    {source:'Finance',text:'Back and forth with HR re: Special Runs — errors becoming frequent',nextSteps:'Compile issues; touchpoint with HR',poc:'MJ'},
+    {source:'Finance',text:'Moolahgo Glitch might affect S10 payroll crediting',nextSteps:'Monitor and coordinate',poc:'MJ'},
+    {source:'Finance',text:'PHP 240K remaining fund of DYNED in Metrobank account',nextSteps:'Coordinate with management',poc:'Jorynn'},
+    {source:'Finance',text:'HMO Billing — capture LOAs from prior months causing significant cost increases',nextSteps:'Process alignment with HMO provider',poc:'Jorynn'},
+    {source:'Finance',text:'MS 365 subscription ongoing under Finance — cancel now?',nextSteps:'Cancelled',poc:'Mond'},
+    {source:'Finance',text:'Delay in transfer of credit limit in CC — monday.com renewal affected',nextSteps:'Resolved via alternative payment',poc:'Jorynn'}
   ],
   probing:[
     {cat:'Scorecard / Metrics',q:"Are our numbers truly accurate and consistent (single source of truth), or are teams keeping side spreadsheets?"},
     {cat:'Scorecard / Metrics',q:"Which KPIs are trending downward even if still above target?"},
-    {cat:'Scorecard / Metrics',q:"Are we relying too much on lagging metrics (revenue, CSAT) and not enough on leading indicators?"},
-    {cat:'Scorecard / Metrics',q:"Where are we seeing variability or outliers in data we've dismissed as one-offs?"},
+    {cat:'Scorecard / Metrics',q:"Are we relying too much on lagging metrics (e.g., revenue, CSAT) and not enough on leading indicators (e.g., pipeline health, workload, response times)?"},
+    {cat:'Scorecard / Metrics',q:"Where are we seeing variability or outliers in the data that we've dismissed as one-offs?"},
     {cat:'Scorecard / Metrics',q:'Are any metrics "green" on the surface but masking hidden issues?'},
     {cat:'Client & Service',q:"What are clients not saying directly but hinting at in tone, requests, or behavior?"},
-    {cat:'Client & Service',q:"Have any small complaints or repeated requests been brushed off as minor but signal a bigger issue?"},
-    {cat:'Client & Service',q:"Are we listening enough to client feedback loops (CSAT, NPS, ticket trends)?"},
-    {cat:'Client & Service',q:"Are we delivering what clients need today, but missing what they'll need in 6–12 months?"},
+    {cat:'Client & Service',q:"Have any small complaints or repeated requests been brushed off as minor, but could signal a bigger issue?"},
+    {cat:'Client & Service',q:"How is the market shifting (competition, pricing, talent expectations), and are we adapting?"},
+    {cat:'Client & Service',q:"Are we listening enough to client feedback loops (CSAT, NPS, ticket trends), or are we just reporting scores?"},
+    {cat:'Client & Service',q:"Are we delivering what clients need today, but missing what they'll need in 6-12 months?"},
     {cat:'Client & Service',q:"What's the biggest client frustration we know about but haven't solved yet?"},
     {cat:'IDS Filter',q:"Does this issue affect more than one person, team, or department?"},
-    {cat:'IDS Filter',q:"If unresolved, will it have a client-facing impact?"},
-    {cat:'IDS Filter',q:"How does this issue tie back to our 3-year picture / quarterly rocks?"},
-    {cat:'IDS Filter',q:"Is it relevant — what's the instance, frequency, quantity? Can a solved issue be a headline instead?"}
+    {cat:'IDS Filter',q:"If unresolved, will it have a client-facing impact (service, delivery, satisfaction)?"},
+    {cat:'IDS Filter',q:"How does this issue tie back to our 3-year picture / quarterly rocks / client success?"}
   ],
   ratings:[],
   ai:[
-    {dept:'ADM',name:'Improved L10 Board',status:'active',notes:'',archived:false},
+    {dept:'ADM',name:'Improved L10 Board',status:'active',notes:'Web-based app with Firebase sync',archived:false},
     {dept:'FIN',name:'Collection Weekly Monitoring Report',status:'active',notes:'',archived:false},
     {dept:'FIN',name:'Balance Sheet Reconciliation',status:'active',notes:'',archived:false},
     {dept:'FIN',name:'Collection Rate / OER and Cash KPIs',status:'active',notes:'',archived:false},
@@ -825,7 +849,6 @@ function defState(){return{
     {dept:'FIN',name:'FX Quarterly Rates Review',status:'active',notes:'',archived:false}
   ]
 };}
-
 let S=null;
 const ALLOCS={vision:'—',scorecard:'10 min',rocks:'5 min',feedback:'5 min',todos:'5 min',issues:'60 min',resolved:'—',probing:'—',rating:'5 min',ai:'—'};
 let timerInt=null,timerSecs=0,timerRunning=false;
@@ -853,12 +876,9 @@ function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
 function save(silent){
-  // Step 1: always write to localStorage (offline fallback)
+  // Always save to localStorage first — this is what you see on refresh
   try{ localStorage.setItem(SK, JSON.stringify(S)); }catch(e){}
-
-  // Step 2: write to Firestore if connected
-  // NOTE: after setDoc completes, our own onSnapshot will fire and re-render.
-  // That is fine — it just re-renders with the same data we just saved.
+  // Also push to Firestore so teammates can see it
   if(window._fbReady && window._fbSave){
     window._fbSave(S).then(function(){
       if(!silent) showSaved();
@@ -870,53 +890,37 @@ function save(silent){
   }
 }
 function load(){
-  var cfg = null;
-  try{ cfg = JSON.parse(localStorage.getItem('atticus_fb_cfg')); }catch(e){}
+  // Step 1: Load from localStorage immediately — fast, reliable, YOUR data
+  try{
+    var d = localStorage.getItem(SK);
+    window.S = d ? JSON.parse(d) : defState();
+  } catch(e){
+    window.S = defState();
+  }
+  renderAll();
 
-  if(cfg && cfg.apiKey){
-    // Firebase config found — show spinner, wait for Firestore data
-    // Do NOT load from localStorage here — Firestore is the only source of truth
-    window.S = null; // clear state so nothing stale renders
-    showLoadingOverlay(true);
-
-    var tries = 0;
-    var connect = function(){
-      tries++;
-      if(window._fbInit){
-        window._fbInit(cfg);
-        // Safety net: if Firestore doesn't respond in 10s, show whatever localStorage has
-        window._fbLoadTimeout = setTimeout(function(){
-          hideLoadingOverlay();
-          if(!window.S){
-            try{
-              var d = localStorage.getItem(SK);
-              window.S = d ? JSON.parse(d) : defState();
-            }catch(e){ window.S = defState(); }
-            renderAll();
-          }
-          showFbStatus('timeout — check connection');
-        }, 10000);
-      } else if(tries < 12){
-        setTimeout(connect, 600);
-      } else {
-        // Firebase SDK never loaded — use localStorage
-        hideLoadingOverlay();
-        try{
-          var d = localStorage.getItem(SK);
-          window.S = d ? JSON.parse(d) : defState();
-        }catch(e){ window.S = defState(); }
-        renderAll();
-      }
-    };
-    setTimeout(connect, 300);
-
-  } else {
-    // No Firebase config — load from localStorage immediately
-    try{
-      var d = localStorage.getItem(SK);
-      window.S = d ? JSON.parse(d) : defState();
-    }catch(e){ window.S = defState(); }
-    renderAll();
+  // Step 2: Connect to Firebase in background (if config saved)
+  try{
+    var savedCfg = localStorage.getItem('atticus_fb_cfg');
+    if(savedCfg){
+      var cfg = JSON.parse(savedCfg);
+      var tries = 0;
+      var tryConnect = function(){
+        tries++;
+        if(window._fbInit){
+          window._fbInit(cfg).catch(function(e){
+            console.error('[FB] Auto-connect error:', e);
+          });
+        } else if(tries < 15){
+          setTimeout(tryConnect, 600);
+        } else {
+          console.warn('[FB] SDK did not load after 15 tries.');
+        }
+      };
+      setTimeout(tryConnect, 400);
+    }
+  } catch(e){
+    console.error('[FB] Load config error:', e);
   }
 }
 function showLoadingOverlay(show){
@@ -1554,30 +1558,61 @@ function saveAIEdit(){
 }
 
 function connectFirebase(){
-  var raw = document.getElementById('fb-config-input').value.trim();
-  var errEl = document.getElementById('fb-connect-error');
-  errEl.style.display='none';
-  // Extract JSON object from the pasted text (handles "const firebaseConfig = {...}" format)
-  var match = raw.match(/\{[\s\S]+\}/);
-  if(!match){errEl.textContent='Could not find a config object. Paste the full firebaseConfig including the { }.';errEl.style.display='block';return;}
+  var raw    = document.getElementById('fb-config-input').value.trim();
+  var errEl  = document.getElementById('fb-connect-error');
+  var btnEl  = document.querySelector('#modal-fb-setup .btn-green');
+  errEl.style.display = 'none';
+
+  // ── Parse the config ────────────────────────────────────────────────────
+  var cfg = null;
   try{
-    // Safe eval alternative: use Function constructor to parse
-    var cfg = (new Function('return ('+match[0]+')'))();
-    // Validate required fields
-    if(!cfg.apiKey||!cfg.projectId){errEl.textContent='Missing apiKey or projectId. Check your config.';errEl.style.display='block';return;}
-    // Save config to localStorage for auto-reconnect
-    localStorage.setItem('atticus_fb_cfg', JSON.stringify(cfg));
-    if(window._fbInit){
-      window._fbInit(cfg);
-      closeModal('modal-fb-setup');
-    } else {
-      errEl.textContent='Firebase SDK not yet loaded. Please wait a moment and try again.';
-      errEl.style.display='block';
-    }
+    // Strip "const firebaseConfig =" wrapper if present
+    var cleaned = raw.replace(/^.*?=\s*/, '').replace(/;?\s*$/, '').trim();
+    // Handle both object literal and JSON
+    cfg = (new Function('return (' + cleaned + ')'))();
   } catch(e){
-    errEl.textContent='Invalid config format: '+e.message;
-    errEl.style.display='block';
+    errEl.textContent = 'Could not parse config: ' + e.message + '. Make sure you copied the full firebaseConfig block.';
+    errEl.style.display = 'block';
+    return;
   }
+
+  if(!cfg || !cfg.apiKey || !cfg.projectId){
+    errEl.textContent = 'Missing apiKey or projectId. Please copy the full firebaseConfig object from Firebase Console.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // ── Save config ─────────────────────────────────────────────────────────
+  try{ localStorage.setItem('atticus_fb_cfg', JSON.stringify(cfg)); }catch(e){}
+
+  // ── Wait for _fbInit to be available (module may still be loading) ──────
+  if(btnEl) btnEl.textContent = 'Connecting...';
+  errEl.style.display = 'none';
+
+  var waited = 0;
+  var tryInit = function(){
+    waited += 300;
+    if(window._fbInit){
+      // _fbInit is async — catch any errors it throws
+      Promise.resolve(window._fbInit(cfg))
+        .then(function(){
+          closeModal('modal-fb-setup');
+          if(btnEl) btnEl.textContent = 'Connect';
+        })
+        .catch(function(e){
+          errEl.textContent = 'Firebase error: ' + (e.message || e);
+          errEl.style.display = 'block';
+          if(btnEl) btnEl.textContent = 'Connect';
+        });
+    } else if(waited < 10000){
+      setTimeout(tryInit, 300);
+    } else {
+      errEl.textContent = 'Firebase SDK failed to load. Check your internet connection and try refreshing the page.';
+      errEl.style.display = 'block';
+      if(btnEl) btnEl.textContent = 'Connect';
+    }
+  };
+  setTimeout(tryInit, 100);
 }
 
 function showFbStatus(msg){
@@ -1656,17 +1691,23 @@ load();
 <!-- FIREBASE SETUP MODAL -->
 <div id="modal-fb-setup" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-fb-setup')">
 <div class="modal" style="max-width:620px">
-  <div class="modal-title"><i class="ti ti-database" style="color:var(--green)"></i> Firebase Setup</div>
+  <div class="modal-title"><i class="ti ti-database" style="color:var(--green)"></i> Connect Firebase</div>
   <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.7">
-    Connect to Firebase Firestore for <strong>real-time sync</strong> across all team members — Jam, MJ, Shanne, Jorynn, Josiah, Ange, and guests. Data persists indefinitely; archive by year whenever needed.<br><br>
-    <strong>One-time setup steps:</strong><br>
-    1. Go to <a href="https://console.firebase.google.com" target="_blank" style="color:var(--green)">console.firebase.google.com</a><br>
-    2. Click <strong>Add project</strong> → name it <code style="background:var(--bg2);padding:1px 5px;border-radius:3px">atticus-l10</code><br>
-    3. In the project: <strong>Firestore Database</strong> → Create database → Start in <strong>test mode</strong><br>
-    4. Go to <strong>Project Settings</strong> (gear icon) → Your apps → Add app → Web icon (<code>&lt;/&gt;</code>)<br>
-    5. Register the app, then copy the <code>firebaseConfig</code> object shown<br>
-    6. Paste it in the field below and click Connect<br><br>
-    <strong>Security (after testing):</strong> In Firestore Rules, change to require authentication or restrict to your domain.
+    Paste your <strong>firebaseConfig</strong> below. You can find it in:<br>
+    <a href="https://console.firebase.google.com" target="_blank" style="color:var(--green)">console.firebase.google.com</a>
+    → <strong>Atticus FAC L10</strong> → gear ⚙ → <strong>Project settings</strong>
+    → scroll to <strong>Your apps</strong> → click your web app → copy the config block shown.
+  </div>
+  <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--text2)">
+    <strong>It looks like this — copy everything including the curly braces { }:</strong>
+    <pre style="margin-top:6px;font-size:11px;line-height:1.6;color:var(--text);overflow-x:auto">const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "atticus-fac-l10.firebaseapp.com",
+  projectId: "atticus-fac-l10",
+  storageBucket: "atticus-fac-l10.appspot.com",
+  messagingSenderId: "123...",
+  appId: "1:123...:web:abc..."
+};</pre>
   </div>
 
   <div style="background:var(--bg2);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:12px;color:var(--text2)">
@@ -1685,11 +1726,11 @@ load();
     <textarea id="fb-config-input" style="min-height:120px;font-family:monospace;font-size:12px" placeholder='Paste your firebaseConfig = { ... } here'></textarea>
   </div>
 
-  <div id="fb-connect-error" style="color:var(--red-text);font-size:12px;margin-bottom:8px;display:none"></div>
 
+  <div id="fb-connect-error" style="color:var(--red-text);font-size:12px;margin-bottom:8px;display:none;padding:8px;background:var(--red-bg);border-radius:6px"></div>
   <div class="modal-footer">
     <button class="btn" onclick="closeModal('modal-fb-setup')">Cancel</button>
-    <button class="btn" onclick="exportJSON()" style="margin-right:auto"><i class="ti ti-download"></i> Export data backup</button>
+    <button class="btn" onclick="exportJSON()" style="margin-right:auto"><i class="ti ti-download"></i> Backup data</button>
     <button class="btn btn-green" onclick="connectFirebase()"><i class="ti ti-plug"></i> Connect</button>
   </div>
 </div></div>
